@@ -58,9 +58,23 @@ function StatementsPage() {
   const [generatingInvoice, setGeneratingInvoice] = useState(null);
   const [invoiceDownload, setInvoiceDownload] = useState(null);
 
-  // For demo purposes, use a placeholder ZZP ID
-  // In production, this would come from authentication context
-  const zzpId = new URLSearchParams(window.location.search).get('zzpId') || '';
+  // Get ZZP ID from URL query parameters
+  // Note: In production with React Router, use useSearchParams() hook instead
+  const [zzpId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search).get('zzpId') || '';
+    }
+    return '';
+  });
+
+  // Cleanup object URLs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (invoiceDownload?.downloadUrl) {
+        URL.revokeObjectURL(invoiceDownload.downloadUrl);
+      }
+    };
+  }, [invoiceDownload]);
 
   /**
    * Fetch statements from the API
@@ -118,6 +132,16 @@ function StatementsPage() {
 
       const invoice = await response.json();
 
+      // Validate PDF data before processing
+      if (!invoice.pdf || typeof invoice.pdf !== 'string') {
+        throw new Error('Ongeldige factuur data ontvangen');
+      }
+
+      // Revoke previous download URL to prevent memory leak
+      if (invoiceDownload?.downloadUrl) {
+        URL.revokeObjectURL(invoiceDownload.downloadUrl);
+      }
+
       // Create download link for the PDF
       const pdfBlob = base64ToBlob(invoice.pdf, 'application/pdf');
       const downloadUrl = URL.createObjectURL(pdfBlob);
@@ -167,10 +191,13 @@ function StatementsPage() {
   }
 
   /**
-   * View/download existing invoice (placeholder for future implementation)
+   * View/download existing invoice
+   * Note: Currently regenerates invoice since storage isn't implemented yet.
+   * In production, this would fetch a saved invoice from storage.
    * @param {string} statementId - Statement ID
    */
   function handleViewInvoice(statementId) {
+    // TODO: Fetch saved invoice from storage when implemented
     // For now, regenerate the invoice for viewing
     handleGenerateInvoice(statementId);
   }
