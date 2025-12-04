@@ -35,9 +35,9 @@ CREATE TABLE worklogs (
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     zzp_id UUID NOT NULL REFERENCES zzp_users(id) ON DELETE CASCADE,
     work_date DATE NOT NULL,
-    tariff_type TEXT,
-    quantity NUMERIC,
-    unit_price NUMERIC,
+    tariff_type TEXT NOT NULL,
+    quantity NUMERIC NOT NULL,
+    unit_price NUMERIC NOT NULL,
     currency TEXT DEFAULT 'EUR',
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

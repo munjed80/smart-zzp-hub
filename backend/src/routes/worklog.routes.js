@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import crypto from 'crypto';
 
 const router = Router();
 
@@ -23,6 +24,9 @@ router.post('/', (req, res) => {
   if (!companyId) missingFields.push('companyId');
   if (!zzpId) missingFields.push('zzpId');
   if (!workDate) missingFields.push('workDate');
+  if (!tariffType) missingFields.push('tariffType');
+  if (quantity === undefined || quantity === null) missingFields.push('quantity');
+  if (unitPrice === undefined || unitPrice === null) missingFields.push('unitPrice');
 
   if (missingFields.length > 0) {
     return res.status(400).json({
@@ -35,7 +39,7 @@ router.post('/', (req, res) => {
 
   // For now, echo back the payload with a generated id
   const worklog = {
-    id: `worklog_${Date.now()}`,
+    id: crypto.randomUUID(),
     companyId,
     zzpId,
     workDate,
