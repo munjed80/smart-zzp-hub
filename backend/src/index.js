@@ -3,8 +3,15 @@ import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import worklogRoutes from './routes/worklog.routes.js';
+import companiesRouter from './routes/companies.routes.js';
+import zzpUsersRouter from './routes/zzp-users.routes.js';
 
 dotenv.config();
+
+// Check for DATABASE_URL
+if (!process.env.DATABASE_URL) {
+  console.warn('WARNING: DATABASE_URL is not set. Database operations will fail.');
+}
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -19,8 +26,10 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'smart-zzp-hub-backend' });
 });
 
-// Mount worklog routes
+// Mount routes
 app.use('/api/worklogs', worklogRoutes);
+app.use('/api/companies', companiesRouter);
+app.use('/api/zzp-users', zzpUsersRouter);
 
 // 404 handler
 app.use((req, res) => {
