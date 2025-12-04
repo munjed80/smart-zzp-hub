@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import worklogRoutes from './routes/worklog.routes.js';
 import companiesRouter from './routes/companies.routes.js';
 import zzpUsersRouter from './routes/zzp-users.routes.js';
+import statementsRouter from './routes/statements.routes.js';
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/worklogs', worklogRoutes);
 app.use('/api/companies', companiesRouter);
 app.use('/api/zzp-users', zzpUsersRouter);
+app.use('/api/statements', statementsRouter);
 
 // 404 handler
 app.use((req, res) => {
