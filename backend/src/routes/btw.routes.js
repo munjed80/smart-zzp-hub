@@ -40,6 +40,8 @@ function calculateDateRange(period, yearNum, value) {
     startDate = `${yearNum}-${String(monthNum).padStart(2, '0')}-01`;
     const lastDay = new Date(yearNum, monthNum, 0).getDate();
     endDate = `${yearNum}-${String(monthNum).padStart(2, '0')}-${lastDay}`;
+  } else {
+    return { error: 'Invalid period: must be month, quarter, or year' };
   }
 
   return { startDate, endDate };
@@ -213,13 +215,15 @@ router.get('/export', async (req, res) => {
 
     // Add worklogs to rows
     for (const row of worklogsResult.rows) {
-      const lineTotal = parseFloat(row.quantity) * parseFloat(row.unit_price);
+      const quantity = parseFloat(row.quantity) || 0;
+      const unitPrice = parseFloat(row.unit_price) || 0;
+      const lineTotal = quantity * unitPrice;
       const btwAmount = lineTotal * BTW_RATE;
       rows.push({
         date: row.work_date,
         type: row.tariff_type,
-        quantity: row.quantity,
-        unitPrice: row.unit_price,
+        quantity: quantity,
+        unitPrice: unitPrice,
         lineTotal: Math.round(lineTotal * 100) / 100,
         btwAmount: Math.round(btwAmount * 100) / 100,
         category: '',
@@ -239,9 +243,9 @@ router.get('/export', async (req, res) => {
         [zzpId, startDate, endDate]
       );
 
-      // Add expenses to rows (as negative amounts for BTW deduction)
+      // Add expenses to rows (positive values representing deductible expenses)
       for (const row of expensesResult.rows) {
-        const amount = parseFloat(row.amount);
+        const amount = parseFloat(row.amount) || 0;
         const btwAmount = amount * BTW_RATE;
         rows.push({
           date: row.expense_date,
