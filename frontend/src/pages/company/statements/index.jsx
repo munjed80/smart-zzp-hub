@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../../config/api';
+import CompanyHeader from '../../../components/CompanyHeader';
 import '../../statements/styles.css';
 import '../worklogs/worklogs.css';
 
@@ -76,15 +77,15 @@ function CompanyStatementsPage() {
   const [statements, setStatements] = useState([]);
   const [loadingStatements, setLoadingStatements] = useState(true);
 
-  // Initialize companyId from localStorage on mount
+  // Check authentication on mount - redirect to home if no companyId
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      let storedCompanyId = localStorage.getItem('companyId');
+      const storedCompanyId = localStorage.getItem('companyId');
       
-      // If missing, set a mock companyId automatically
+      // If missing, redirect to home page
       if (!storedCompanyId) {
-        storedCompanyId = 'company_123';
-        localStorage.setItem('companyId', storedCompanyId);
+        window.location.href = '/';
+        return;
       }
       
       setCompanyId(storedCompanyId);
@@ -189,6 +190,7 @@ function CompanyStatementsPage() {
   if (!companyId) {
     return (
       <div className="statements-page">
+        <CompanyHeader />
         <div className="container">
           <h1 className="page-title">Overzichten genereren</h1>
           <div className="loading">Laden...</div>
@@ -199,6 +201,7 @@ function CompanyStatementsPage() {
 
   return (
     <div className="statements-page">
+      <CompanyHeader />
       <div className="container">
         <h1 className="page-title">Overzichten genereren</h1>
 
