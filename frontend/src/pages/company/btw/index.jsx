@@ -231,6 +231,20 @@ function CompanyBtwPage() {
                 <span className="btw-amount btw-balance">{formatCurrency(btwResult.net)}</span>
               </div>
             </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ marginTop: '1rem' }}
+              onClick={() => {
+                let url = `${API_BASE_URL}/api/btw/export?scope=company&companyId=${companyId}&period=${periodType}&year=${year}`;
+                if (periodType !== 'year') {
+                  url += `&value=${periodValue}`;
+                }
+                window.open(url, '_blank');
+              }}
+            >
+              Exporteer als CSV
+            </button>
           </div>
         )}
       </div>

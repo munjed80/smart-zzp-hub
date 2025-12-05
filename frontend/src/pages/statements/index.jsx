@@ -414,6 +414,18 @@ function StatementsPage() {
                 <span className="btw-amount btw-balance">{formatCurrency(btwTotals.btwBalance)}</span>
               </div>
             </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ marginTop: '1rem' }}
+              onClick={() => {
+                const currentYear = new Date().getFullYear();
+                const url = `${API_BASE_URL}/api/btw/export?scope=zzp&zzpId=${zzpId}&period=year&year=${currentYear}`;
+                window.open(url, '_blank');
+              }}
+            >
+              Exporteer als CSV
+            </button>
           </div>
         )}
 
