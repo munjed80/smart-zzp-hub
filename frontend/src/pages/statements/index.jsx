@@ -504,6 +504,9 @@ function StatementsPage() {
               {expenses.map((expense) => (
                 <div key={expense.id} className="expense-item">
                   <div className="expense-item-info">
+                    <span className="expense-item-date">
+                      {expense.expense_date ? new Date(expense.expense_date).toLocaleDateString('nl-NL') : ''}
+                    </span>
                     <span className="expense-item-category">{expense.category}</span>
                     <span className="expense-item-amount">{formatCurrency(expense.amount)}</span>
                   </div>

@@ -83,8 +83,11 @@ router.get('/', async (req, res) => {
     const params = [];
     let paramIndex = 1;
 
-    // Apply filter
+    // Apply filter with UUID validation
     if (zzpId) {
+      if (!UUID_REGEX.test(zzpId)) {
+        return res.status(400).json({ error: 'Invalid zzpId: must be a valid UUID' });
+      }
       sql += ` AND zzp_id = $${paramIndex++}`;
       params.push(zzpId);
     }
@@ -106,6 +109,11 @@ router.get('/', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Validate UUID format
+    if (!UUID_REGEX.test(id)) {
+      return res.status(400).json({ error: 'Invalid id: must be a valid UUID' });
+    }
 
     const result = await query(
       'DELETE FROM expenses WHERE id = $1 RETURNING id',
