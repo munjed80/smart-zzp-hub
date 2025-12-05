@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/api';
 import './styles.css';
-
-// API base URL - can be configured via environment variable
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
 
 /**
  * Format currency amount in Dutch format
@@ -58,14 +56,21 @@ function StatementsPage() {
   const [generatingInvoice, setGeneratingInvoice] = useState(null);
   const [invoiceDownload, setInvoiceDownload] = useState(null);
 
-  // Get ZZP ID from URL query parameters
-  // Note: In production with React Router, use useSearchParams() hook instead
-  const [zzpId] = useState(() => {
+  // Get ZZP ID from localStorage
+  const [zzpId, setZzpId] = useState(null);
+
+  // Check authentication on mount - redirect to login if no zzpId
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      return new URLSearchParams(window.location.search).get('zzpId') || '';
+      const storedZzpId = localStorage.getItem('zzpId');
+      if (!storedZzpId) {
+        // Redirect to login page if not authenticated
+        window.location.href = '/login';
+        return;
+      }
+      setZzpId(storedZzpId);
     }
-    return '';
-  });
+  }, []);
 
   // Cleanup object URLs on unmount to prevent memory leaks
   useEffect(() => {
@@ -80,14 +85,17 @@ function StatementsPage() {
    * Fetch statements from the API
    */
   useEffect(() => {
+    // Wait for zzpId to be set (after auth check)
+    if (!zzpId) {
+      return;
+    }
+
     async function fetchStatements() {
       try {
         setLoading(true);
         setError(null);
 
-        const url = zzpId 
-          ? `${API_BASE_URL}/statements?zzpId=${zzpId}`
-          : `${API_BASE_URL}/statements`;
+        const url = `${API_BASE_URL}/api/statements?zzpId=${zzpId}`;
 
         const response = await fetch(url);
 
@@ -118,7 +126,7 @@ function StatementsPage() {
       setError(null);
       setInvoiceDownload(null);
 
-      const response = await fetch(`${API_BASE_URL}/invoices/generate`, {
+      const response = await fetch(`${API_BASE_URL}/api/invoices/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -155,9 +163,7 @@ function StatementsPage() {
 
       // Refresh statements to update status
       const statementsResponse = await fetch(
-        zzpId 
-          ? `${API_BASE_URL}/statements?zzpId=${zzpId}`
-          : `${API_BASE_URL}/statements`
+        `${API_BASE_URL}/api/statements?zzpId=${zzpId}`
       );
       
       if (statementsResponse.ok) {
