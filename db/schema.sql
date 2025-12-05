@@ -57,6 +57,18 @@ CREATE TABLE statements (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Expenses table
+-- Stores expenses logged by ZZP users for BTW calculation
+CREATE TABLE expenses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    zzp_id UUID NOT NULL REFERENCES zzp_users(id) ON DELETE CASCADE,
+    expense_date DATE NOT NULL,
+    category TEXT,
+    amount NUMERIC(10,2) NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Indexes for common queries
 CREATE INDEX idx_worklogs_company_id ON worklogs(company_id);
 CREATE INDEX idx_worklogs_zzp_id ON worklogs(zzp_id);
@@ -64,3 +76,5 @@ CREATE INDEX idx_worklogs_work_date ON worklogs(work_date);
 CREATE INDEX idx_statements_company_id ON statements(company_id);
 CREATE INDEX idx_statements_zzp_id ON statements(zzp_id);
 CREATE INDEX idx_statements_year_week ON statements(year, week_number);
+CREATE INDEX idx_expenses_zzp_id ON expenses(zzp_id);
+CREATE INDEX idx_expenses_expense_date ON expenses(expense_date);

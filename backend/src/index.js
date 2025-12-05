@@ -7,6 +7,7 @@ import companiesRouter from './routes/companies.routes.js';
 import zzpUsersRouter from './routes/zzp-users.routes.js';
 import statementsRouter from './routes/statements.routes.js';
 import invoicesRouter from './routes/invoices.routes.js';
+import expensesRouter from './routes/expenses.routes.js';
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use('/api/companies', companiesRouter);
 app.use('/api/zzp-users', zzpUsersRouter);
 app.use('/api/statements', statementsRouter);
 app.use('/api/invoices', invoicesRouter);
+app.use('/api/expenses', expensesRouter);
 
 // 404 handler
 app.use((req, res) => {
