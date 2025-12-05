@@ -64,12 +64,12 @@ function CompanyBtwPage() {
       return;
     }
 
-    if (periodType === 'month' && (!periodValue || periodValue < 1 || periodValue > 12)) {
+    if (periodType === 'month' && (periodValue === null || periodValue === undefined || periodValue < 1 || periodValue > 12)) {
       setError('Vul een geldig maandnummer in (1-12)');
       return;
     }
 
-    if (periodType === 'quarter' && (!periodValue || periodValue < 1 || periodValue > 4)) {
+    if (periodType === 'quarter' && (periodValue === null || periodValue === undefined || periodValue < 1 || periodValue > 4)) {
       setError('Vul een geldig kwartaalnummer in (1-4)');
       return;
     }
@@ -177,7 +177,7 @@ function CompanyBtwPage() {
                   id="year"
                   className="form-input"
                   value={year}
-                  onChange={(e) => setYear(parseInt(e.target.value) || '')}
+                  onChange={(e) => setYear(parseInt(e.target.value) || new Date().getFullYear())}
                   min="2000"
                   max="2100"
                   disabled={isLoading}
@@ -194,7 +194,7 @@ function CompanyBtwPage() {
                     id="periodValue"
                     className="form-input"
                     value={periodValue}
-                    onChange={(e) => setPeriodValue(parseInt(e.target.value) || '')}
+                    onChange={(e) => setPeriodValue(parseInt(e.target.value) || 1)}
                     min="1"
                     max={getMaxPeriodValue()}
                     disabled={isLoading}
