@@ -60,6 +60,29 @@ function StatementsPage() {
   // Get ZZP ID from localStorage
   const [zzpId, setZzpId] = useState(null);
 
+  /**
+   * Calculate BTW (VAT) totals from statements
+   * @param {Array} statementsList - List of statements
+   * @returns {Object} - BTW income, expenses, and balance
+   */
+  function calculateBtwTotals(statementsList) {
+    // Calculate BTW over income (21% of total amounts)
+    const btwIncome = statementsList.reduce((sum, statement) => {
+      return sum + ((statement.total_amount || 0) * 0.21);
+    }, 0);
+
+    // BTW over expenses (for now always 0.00)
+    const btwExpenses = 0;
+
+    // BTW balance
+    const btwBalance = btwIncome - btwExpenses;
+
+    return { btwIncome, btwExpenses, btwBalance };
+  }
+
+  // Calculate BTW totals whenever statements change
+  const btwTotals = calculateBtwTotals(statements);
+
   // Check authentication on mount - redirect to login if no zzpId
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -257,6 +280,27 @@ function StatementsPage() {
             >
               Download PDF
             </a>
+          </div>
+        )}
+
+        {/* BTW Summary box */}
+        {statements.length > 0 && (
+          <div className="btw-summary">
+            <h2 className="btw-summary-title">BTW overzicht</h2>
+            <div className="btw-summary-rows">
+              <div className="btw-summary-row">
+                <span className="btw-label">BTW over omzet:</span>
+                <span className="btw-amount">{formatCurrency(btwTotals.btwIncome)}</span>
+              </div>
+              <div className="btw-summary-row">
+                <span className="btw-label">BTW over kosten:</span>
+                <span className="btw-amount">{formatCurrency(btwTotals.btwExpenses)}</span>
+              </div>
+              <div className="btw-summary-row btw-balance-row">
+                <span className="btw-label">BTW balans:</span>
+                <span className="btw-amount btw-balance">{formatCurrency(btwTotals.btwBalance)}</span>
+              </div>
+            </div>
           </div>
         )}
 

@@ -232,3 +232,56 @@
     align-items: flex-start;
   }
 }
+
+/* BTW Summary box */
+.btw-summary {
+  background-color: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.btw-summary-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1rem 0;
+}
+
+.btw-summary-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.btw-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.375rem 0;
+}
+
+.btw-label {
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.btw-amount {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1a1a1a;
+  font-feature-settings: 'tnum';
+}
+
+.btw-balance-row {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 0.375rem;
+  padding-top: 0.75rem;
+}
+
+.btw-balance {
+  font-weight: 600;
+  color: #2563eb;
+}
