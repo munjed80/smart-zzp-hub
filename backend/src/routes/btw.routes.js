@@ -290,4 +290,212 @@ router.get('/export', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/btw/transactions
+ * Get detailed BTW transactions for a ZZP user or company
+ * Query params:
+ *   - scope: "zzp" | "company" (required)
+ *   - zzpId: UUID (required when scope=zzp)
+ *   - companyId: UUID (required when scope=company)
+ *   - period: "month" | "quarter" | "year" (required)
+ *   - year: YYYY (required)
+ *   - value: period number (month 1-12 or quarter 1-4, optional for year)
+ */
+router.get('/transactions', async (req, res) => {
+  try {
+    const { scope, zzpId, companyId, period, year, value } = req.query;
+
+    // Validate scope
+    if (!scope || !['zzp', 'company'].includes(scope)) {
+      return res.status(400).json({ error: 'Invalid scope: must be zzp or company' });
+    }
+
+    // Validate ID based on scope
+    if (scope === 'zzp') {
+      if (!zzpId) {
+        return res.status(400).json({ error: 'Missing required field: zzpId (required for scope=zzp)' });
+      }
+      if (!UUID_REGEX.test(zzpId)) {
+        return res.status(400).json({ error: 'Invalid zzpId: must be a valid UUID' });
+      }
+    } else if (scope === 'company') {
+      if (!companyId) {
+        return res.status(400).json({ error: 'Missing required field: companyId (required for scope=company)' });
+      }
+      if (!UUID_REGEX.test(companyId)) {
+        return res.status(400).json({ error: 'Invalid companyId: must be a valid UUID' });
+      }
+    }
+
+    // Validate period
+    if (!period || !['month', 'quarter', 'year'].includes(period)) {
+      return res.status(400).json({ error: 'Invalid period: must be month, quarter, or year' });
+    }
+
+    // Validate year
+    const yearNum = parseInt(year);
+    if (!year || isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
+      return res.status(400).json({ error: 'Invalid year: must be a valid year between 2000 and 2100' });
+    }
+
+    // Calculate date range
+    const dateRange = calculateDateRange(period, yearNum, value);
+    if (dateRange.error) {
+      return res.status(400).json({ error: dateRange.error });
+    }
+    const { startDate, endDate } = dateRange;
+
+    // Collect transactions
+    const transactions = [];
+
+    // Fetch worklogs
+    let worklogsQuery;
+    let worklogsParams;
+
+    if (scope === 'company') {
+      worklogsQuery = `
+        SELECT id, work_date, tariff_type, quantity, unit_price, notes
+        FROM worklogs
+        WHERE company_id = $1
+          AND work_date >= $2
+          AND work_date <= $3
+        ORDER BY work_date DESC
+      `;
+      worklogsParams = [companyId, startDate, endDate];
+    } else {
+      worklogsQuery = `
+        SELECT id, work_date, tariff_type, quantity, unit_price, notes
+        FROM worklogs
+        WHERE zzp_id = $1
+          AND work_date >= $2
+          AND work_date <= $3
+        ORDER BY work_date DESC
+      `;
+      worklogsParams = [zzpId, startDate, endDate];
+    }
+
+    const worklogsResult = await query(worklogsQuery, worklogsParams);
+
+    // Add worklogs to transactions
+    for (const row of worklogsResult.rows) {
+      const quantity = parseFloat(row.quantity) || 0;
+      const unitPrice = parseFloat(row.unit_price) || 0;
+      const lineTotal = quantity * unitPrice;
+      const btwAmount = lineTotal * BTW_RATE;
+      transactions.push({
+        id: row.id,
+        date: row.work_date,
+        type: 'income',
+        description: row.tariff_type,
+        category: row.tariff_type,
+        quantity: quantity,
+        unitPrice: unitPrice,
+        amount: Math.round(lineTotal * 100) / 100,
+        btwAmount: Math.round(btwAmount * 100) / 100,
+        notes: row.notes || '',
+        source: 'worklog'
+      });
+    }
+
+    // For ZZP scope, also fetch expenses
+    if (scope === 'zzp') {
+      const expensesResult = await query(
+        `SELECT id, expense_date, amount, category, notes
+         FROM expenses
+         WHERE zzp_id = $1
+           AND expense_date >= $2
+           AND expense_date <= $3
+         ORDER BY expense_date DESC`,
+        [zzpId, startDate, endDate]
+      );
+
+      // Add expenses to transactions
+      for (const row of expensesResult.rows) {
+        const amount = parseFloat(row.amount) || 0;
+        const btwAmount = amount * BTW_RATE;
+        transactions.push({
+          id: row.id,
+          date: row.expense_date,
+          type: 'expense',
+          description: row.category || 'Uitgave',
+          category: row.category || 'Overig',
+          quantity: 1,
+          unitPrice: amount,
+          amount: Math.round(amount * 100) / 100,
+          btwAmount: Math.round(btwAmount * 100) / 100,
+          notes: row.notes || '',
+          source: 'expense'
+        });
+      }
+
+      // Sort all transactions by date descending
+      transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    // Calculate totals
+    let totalIncome = 0;
+    let totalExpenses = 0;
+    let btwReceived = 0;
+    let btwPaid = 0;
+    const categoryTotals = {};
+
+    for (const tx of transactions) {
+      if (tx.type === 'income') {
+        totalIncome += tx.amount;
+        btwReceived += tx.btwAmount;
+      } else {
+        totalExpenses += tx.amount;
+        btwPaid += tx.btwAmount;
+      }
+
+      // Aggregate by category
+      if (!categoryTotals[tx.category]) {
+        categoryTotals[tx.category] = { income: 0, expenses: 0, btwReceived: 0, btwPaid: 0 };
+      }
+      if (tx.type === 'income') {
+        categoryTotals[tx.category].income += tx.amount;
+        categoryTotals[tx.category].btwReceived += tx.btwAmount;
+      } else {
+        categoryTotals[tx.category].expenses += tx.amount;
+        categoryTotals[tx.category].btwPaid += tx.btwAmount;
+      }
+    }
+
+    // Round totals
+    totalIncome = Math.round(totalIncome * 100) / 100;
+    totalExpenses = Math.round(totalExpenses * 100) / 100;
+    btwReceived = Math.round(btwReceived * 100) / 100;
+    btwPaid = Math.round(btwPaid * 100) / 100;
+
+    // Round category totals
+    for (const cat of Object.keys(categoryTotals)) {
+      categoryTotals[cat].income = Math.round(categoryTotals[cat].income * 100) / 100;
+      categoryTotals[cat].expenses = Math.round(categoryTotals[cat].expenses * 100) / 100;
+      categoryTotals[cat].btwReceived = Math.round(categoryTotals[cat].btwReceived * 100) / 100;
+      categoryTotals[cat].btwPaid = Math.round(categoryTotals[cat].btwPaid * 100) / 100;
+    }
+
+    res.json({
+      transactions,
+      summary: {
+        totalIncome,
+        totalExpenses,
+        netIncome: Math.round((totalIncome - totalExpenses) * 100) / 100,
+        btwReceived,
+        btwPaid,
+        btwBalance: Math.round((btwReceived - btwPaid) * 100) / 100
+      },
+      categoryTotals,
+      period,
+      year: yearNum,
+      value: period === 'year' ? null : parseInt(value),
+      startDate,
+      endDate
+    });
+  } catch (error) {
+    console.error('Error fetching BTW transactions:', error);
+    res.status(500).json({ error: 'Failed to fetch BTW transactions' });
+  }
+});
+
 export default router;

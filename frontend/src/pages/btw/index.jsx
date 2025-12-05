@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { API_BASE_URL } from '../../../config/api';
-import CompanyHeader from '../../../components/CompanyHeader';
-import '../../btw/btw.css';
+import { API_BASE_URL } from '../../config/api';
+import Header from '../../components/Header';
+import './btw.css';
 
 /**
  * Format currency amount in Dutch format
@@ -26,10 +26,10 @@ function formatDate(dateStr) {
 }
 
 /**
- * Company BTW Overview Page Component
+ * ZZP BTW Overview Page Component
  * Displays BTW calculation with period controls, transaction table, and chart
  */
-function CompanyBtwPage() {
+function ZzpBtwPage() {
   // Period state
   const [periodType, setPeriodType] = useState('quarter');
   const [year, setYear] = useState(new Date().getFullYear());
@@ -38,7 +38,7 @@ function CompanyBtwPage() {
   // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [companyId, setCompanyId] = useState(null);
+  const [zzpId, setZzpId] = useState(null);
   
   // Data state
   const [transactions, setTransactions] = useState([]);
@@ -49,16 +49,17 @@ function CompanyBtwPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('date');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [filterType, setFilterType] = useState('all');
 
   // Check authentication on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedCompanyId = localStorage.getItem('companyId');
-      if (!storedCompanyId) {
-        window.location.href = '/';
+      const storedZzpId = localStorage.getItem('zzpId');
+      if (!storedZzpId) {
+        window.location.href = '/login';
         return;
       }
-      setCompanyId(storedCompanyId);
+      setZzpId(storedZzpId);
     }
   }, []);
 
@@ -66,13 +67,13 @@ function CompanyBtwPage() {
    * Fetch BTW transactions from API
    */
   async function fetchTransactions() {
-    if (!companyId) return;
+    if (!zzpId) return;
     
     try {
       setIsLoading(true);
       setError(null);
 
-      let url = `${API_BASE_URL}/api/btw/transactions?scope=company&companyId=${companyId}&period=${periodType}&year=${year}`;
+      let url = `${API_BASE_URL}/api/btw/transactions?scope=zzp&zzpId=${zzpId}&period=${periodType}&year=${year}`;
       if (periodType !== 'year') {
         url += `&value=${periodValue}`;
       }
@@ -94,12 +95,12 @@ function CompanyBtwPage() {
     }
   }
 
-  // Fetch data when period changes or companyId is set
+  // Fetch data when period changes or zzpId is set
   useEffect(() => {
-    if (companyId) {
+    if (zzpId) {
       fetchTransactions();
     }
-  }, [companyId, periodType, year, periodValue]);
+  }, [zzpId, periodType, year, periodValue]);
 
   /**
    * Handle period type change
@@ -131,7 +132,7 @@ function CompanyBtwPage() {
    * Export CSV
    */
   function handleExportCsv() {
-    let url = `${API_BASE_URL}/api/btw/export?scope=company&companyId=${companyId}&period=${periodType}&year=${year}`;
+    let url = `${API_BASE_URL}/api/btw/export?scope=zzp&zzpId=${zzpId}&period=${periodType}&year=${year}`;
     if (periodType !== 'year') {
       url += `&value=${periodValue}`;
     }
@@ -141,6 +142,11 @@ function CompanyBtwPage() {
   // Filter and sort transactions
   const filteredTransactions = useMemo(() => {
     let result = [...transactions];
+    
+    // Filter by type
+    if (filterType !== 'all') {
+      result = result.filter(tx => tx.type === filterType);
+    }
     
     // Filter by search term
     if (searchTerm.trim()) {
@@ -171,7 +177,7 @@ function CompanyBtwPage() {
     });
     
     return result;
-  }, [transactions, searchTerm, sortField, sortDirection]);
+  }, [transactions, filterType, searchTerm, sortField, sortDirection]);
 
   // Calculate chart data (monthly BTW over time)
   const chartData = useMemo(() => {
@@ -182,34 +188,40 @@ function CompanyBtwPage() {
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       
       if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = { received: 0 };
+        monthlyData[monthKey] = { received: 0, paid: 0 };
       }
       
-      monthlyData[monthKey].received += tx.btwAmount;
+      if (tx.type === 'income') {
+        monthlyData[monthKey].received += tx.btwAmount;
+      } else {
+        monthlyData[monthKey].paid += tx.btwAmount;
+      }
     });
     
     return Object.entries(monthlyData)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, data]) => ({
         month,
-        received: Math.round(data.received * 100) / 100
+        received: Math.round(data.received * 100) / 100,
+        paid: Math.round(data.paid * 100) / 100,
+        balance: Math.round((data.received - data.paid) * 100) / 100
       }));
   }, [transactions]);
 
   // Calculate max value for chart scaling
   const chartMax = useMemo(() => {
     if (chartData.length === 0) return 100;
-    const max = Math.max(...chartData.map(d => d.received));
+    const max = Math.max(...chartData.flatMap(d => [d.received, d.paid]));
     return Math.ceil(max / 100) * 100 || 100;
   }, [chartData]);
 
-  // Wait for companyId
-  if (!companyId) {
+  // Wait for zzpId
+  if (!zzpId) {
     return (
       <div className="btw-page">
-        <CompanyHeader />
+        <Header />
         <div className="btw-container">
-          <h1 className="btw-title">BTW Overzicht (bedrijf)</h1>
+          <h1 className="btw-title">BTW Overzicht</h1>
           <div className="btw-loading">Laden...</div>
         </div>
       </div>
@@ -218,9 +230,9 @@ function CompanyBtwPage() {
 
   return (
     <div className="btw-page">
-      <CompanyHeader />
+      <Header />
       <div className="btw-container">
-        <h1 className="btw-title">BTW Overzicht (bedrijf)</h1>
+        <h1 className="btw-title">BTW Overzicht</h1>
 
         {/* Error message */}
         {error && <div className="btw-error">{error}</div>}
@@ -294,12 +306,19 @@ function CompanyBtwPage() {
                 <div className="btw-card btw-card-income">
                   <div className="btw-card-label">Omzet</div>
                   <div className="btw-card-value">{formatCurrency(summary.totalIncome)}</div>
-                  <div className="btw-card-btw">BTW te ontvangen: {formatCurrency(summary.btwReceived)}</div>
+                  <div className="btw-card-btw">BTW ontvangen: {formatCurrency(summary.btwReceived)}</div>
+                </div>
+                <div className="btw-card btw-card-expense">
+                  <div className="btw-card-label">Kosten</div>
+                  <div className="btw-card-value">{formatCurrency(summary.totalExpenses)}</div>
+                  <div className="btw-card-btw">BTW betaald: {formatCurrency(summary.btwPaid)}</div>
                 </div>
                 <div className="btw-card btw-card-balance">
-                  <div className="btw-card-label">Totaal incl. BTW</div>
-                  <div className="btw-card-value">{formatCurrency(summary.totalIncome + summary.btwReceived)}</div>
-                  <div className="btw-card-btw">Af te dragen aan Belastingdienst</div>
+                  <div className="btw-card-label">BTW Balans</div>
+                  <div className="btw-card-value">{formatCurrency(summary.btwBalance)}</div>
+                  <div className="btw-card-btw">
+                    {summary.btwBalance >= 0 ? 'Af te dragen' : 'Terug te vorderen'}
+                  </div>
                 </div>
               </div>
             )}
@@ -320,8 +339,13 @@ function CompanyBtwPage() {
                         <div className="btw-chart-bar-container">
                           <div
                             className="btw-chart-bar btw-chart-bar-received"
-                            style={{ height: `${(d.received / chartMax) * 100}%`, width: '80%' }}
-                            title={`BTW: ${formatCurrency(d.received)}`}
+                            style={{ height: `${(d.received / chartMax) * 100}%` }}
+                            title={`Ontvangen: ${formatCurrency(d.received)}`}
+                          />
+                          <div
+                            className="btw-chart-bar btw-chart-bar-paid"
+                            style={{ height: `${(d.paid / chartMax) * 100}%` }}
+                            title={`Betaald: ${formatCurrency(d.paid)}`}
                           />
                         </div>
                         <span className="btw-chart-label">{d.month}</span>
@@ -330,7 +354,8 @@ function CompanyBtwPage() {
                   </div>
                 </div>
                 <div className="btw-chart-legend">
-                  <span className="btw-legend-item btw-legend-received">BTW over omzet</span>
+                  <span className="btw-legend-item btw-legend-received">BTW ontvangen</span>
+                  <span className="btw-legend-item btw-legend-paid">BTW betaald</span>
                 </div>
               </div>
             )}
@@ -347,9 +372,13 @@ function CompanyBtwPage() {
                         <span>Omzet:</span>
                         <span className="btw-category-income">{formatCurrency(totals.income)}</span>
                       </div>
+                      <div className="btw-category-row">
+                        <span>Kosten:</span>
+                        <span className="btw-category-expense">{formatCurrency(totals.expenses)}</span>
+                      </div>
                       <div className="btw-category-row btw-category-btw">
-                        <span>BTW:</span>
-                        <span>{formatCurrency(totals.btwReceived)}</span>
+                        <span>BTW balans:</span>
+                        <span>{formatCurrency(totals.btwReceived - totals.btwPaid)}</span>
                       </div>
                     </div>
                   ))}
@@ -370,6 +399,15 @@ function CompanyBtwPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
+                <select
+                  className="btw-filter"
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                >
+                  <option value="all">Alle transacties</option>
+                  <option value="income">Alleen inkomsten</option>
+                  <option value="expense">Alleen uitgaven</option>
+                </select>
               </div>
 
               {filteredTransactions.length === 0 ? (
@@ -382,14 +420,11 @@ function CompanyBtwPage() {
                         <th onClick={() => handleSort('date')} className="btw-th-sortable">
                           Datum {sortField === 'date' && (sortDirection === 'asc' ? '↑' : '↓')}
                         </th>
+                        <th onClick={() => handleSort('type')} className="btw-th-sortable">
+                          Type {sortField === 'type' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
                         <th onClick={() => handleSort('category')} className="btw-th-sortable">
-                          Type {sortField === 'category' && (sortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th onClick={() => handleSort('quantity')} className="btw-th-sortable btw-th-right">
-                          Aantal {sortField === 'quantity' && (sortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th onClick={() => handleSort('unitPrice')} className="btw-th-sortable btw-th-right">
-                          Tarief {sortField === 'unitPrice' && (sortDirection === 'asc' ? '↑' : '↓')}
+                          Categorie {sortField === 'category' && (sortDirection === 'asc' ? '↑' : '↓')}
                         </th>
                         <th onClick={() => handleSort('amount')} className="btw-th-sortable btw-th-right">
                           Bedrag {sortField === 'amount' && (sortDirection === 'asc' ? '↑' : '↓')}
@@ -399,11 +434,14 @@ function CompanyBtwPage() {
                     </thead>
                     <tbody>
                       {filteredTransactions.map((tx) => (
-                        <tr key={`${tx.source}-${tx.id}`} className="btw-row-income">
+                        <tr key={`${tx.source}-${tx.id}`} className={`btw-row-${tx.type}`}>
                           <td>{formatDate(tx.date)}</td>
+                          <td>
+                            <span className={`btw-type-badge btw-type-${tx.type}`}>
+                              {tx.type === 'income' ? 'Inkomen' : 'Uitgave'}
+                            </span>
+                          </td>
                           <td>{tx.category}</td>
-                          <td className="btw-td-amount">{tx.quantity}</td>
-                          <td className="btw-td-amount">{formatCurrency(tx.unitPrice)}</td>
                           <td className="btw-td-amount">{formatCurrency(tx.amount)}</td>
                           <td className="btw-td-amount">{formatCurrency(tx.btwAmount)}</td>
                         </tr>
@@ -420,4 +458,4 @@ function CompanyBtwPage() {
   );
 }
 
-export default CompanyBtwPage;
+export default ZzpBtwPage;
