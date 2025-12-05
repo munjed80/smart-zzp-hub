@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../config/api';
+import Header from '../../components/Header';
 import './styles.css';
 
 /**
@@ -212,6 +213,7 @@ function StatementsPage() {
   if (loading) {
     return (
       <div className="statements-page">
+        <Header />
         <div className="container">
           <h1 className="page-title">Overzichten</h1>
           <div className="loading">Laden...</div>
@@ -224,6 +226,7 @@ function StatementsPage() {
   if (error && statements.length === 0) {
     return (
       <div className="statements-page">
+        <Header />
         <div className="container">
           <h1 className="page-title">Overzichten</h1>
           <div className="error-message">{error}</div>
@@ -234,6 +237,7 @@ function StatementsPage() {
 
   return (
     <div className="statements-page">
+      <Header />
       <div className="container">
         <h1 className="page-title">Overzichten</h1>
         
