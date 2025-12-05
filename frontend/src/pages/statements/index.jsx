@@ -60,19 +60,29 @@ function StatementsPage() {
   // Get ZZP ID from localStorage
   const [zzpId, setZzpId] = useState(null);
 
+  // Expenses state (stored locally in component)
+  const [expenses, setExpenses] = useState([]);
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [expenseCategory, setExpenseCategory] = useState('');
+  const [expenseAmount, setExpenseAmount] = useState('');
+  const [expenseNotes, setExpenseNotes] = useState('');
+
   /**
-   * Calculate BTW (VAT) totals from statements
+   * Calculate BTW (VAT) totals from statements and expenses
    * @param {Array} statementsList - List of statements
+   * @param {Array} expensesList - List of expenses
    * @returns {Object} - BTW income, expenses, and balance
    */
-  function calculateBtwTotals(statementsList) {
+  function calculateBtwTotals(statementsList, expensesList) {
     // Calculate BTW over income (21% of total amounts)
     const btwIncome = statementsList.reduce((sum, statement) => {
       return sum + ((statement.total_amount || 0) * 0.21);
     }, 0);
 
-    // BTW over expenses (for now always 0.00)
-    const btwExpenses = 0;
+    // Calculate BTW over expenses (21% of expense amounts)
+    const btwExpenses = expensesList.reduce((sum, expense) => {
+      return sum + ((expense.amount || 0) * 0.21);
+    }, 0);
 
     // BTW balance
     const btwBalance = btwIncome - btwExpenses;
@@ -80,8 +90,47 @@ function StatementsPage() {
     return { btwIncome, btwExpenses, btwBalance };
   }
 
-  // Calculate BTW totals whenever statements change
-  const btwTotals = calculateBtwTotals(statements);
+  // Calculate BTW totals whenever statements or expenses change
+  const btwTotals = calculateBtwTotals(statements, expenses);
+
+  /**
+   * Handle adding a new expense
+   */
+  function handleAddExpense() {
+    // Validate inputs
+    if (!expenseCategory.trim()) {
+      return;
+    }
+
+    const amount = parseFloat(expenseAmount);
+    if (isNaN(amount) || amount <= 0) {
+      return;
+    }
+
+    // Add new expense to state
+    const newExpense = {
+      id: Date.now(),
+      category: expenseCategory.trim(),
+      amount: amount,
+      notes: expenseNotes.trim()
+    };
+
+    setExpenses([...expenses, newExpense]);
+
+    // Reset form
+    setExpenseCategory('');
+    setExpenseAmount('');
+    setExpenseNotes('');
+    setShowExpenseForm(false);
+  }
+
+  /**
+   * Handle removing an expense
+   * @param {number} expenseId - ID of expense to remove
+   */
+  function handleRemoveExpense(expenseId) {
+    setExpenses(expenses.filter(exp => exp.id !== expenseId));
+  }
 
   // Check authentication on mount - redirect to login if no zzpId
   useEffect(() => {
@@ -303,6 +352,99 @@ function StatementsPage() {
             </div>
           </div>
         )}
+
+        {/* Expenses section */}
+        <div className="expenses-section">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setShowExpenseForm(!showExpenseForm)}
+          >
+            {showExpenseForm ? 'Annuleren' : 'Uitgaven toevoegen'}
+          </button>
+
+          {/* Expense form */}
+          {showExpenseForm && (
+            <div className="expense-form">
+              <div className="expense-form-group">
+                <label htmlFor="expenseCategory" className="expense-label">
+                  Categorie
+                </label>
+                <input
+                  type="text"
+                  id="expenseCategory"
+                  className="expense-input"
+                  value={expenseCategory}
+                  onChange={(e) => setExpenseCategory(e.target.value)}
+                  placeholder="bijv. Kantoorbenodigdheden"
+                />
+              </div>
+
+              <div className="expense-form-group">
+                <label htmlFor="expenseAmount" className="expense-label">
+                  Bedrag (€)
+                </label>
+                <input
+                  type="number"
+                  id="expenseAmount"
+                  className="expense-input"
+                  value={expenseAmount}
+                  onChange={(e) => setExpenseAmount(e.target.value)}
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+
+              <div className="expense-form-group">
+                <label htmlFor="expenseNotes" className="expense-label">
+                  Notities
+                </label>
+                <textarea
+                  id="expenseNotes"
+                  className="expense-input expense-textarea"
+                  value={expenseNotes}
+                  onChange={(e) => setExpenseNotes(e.target.value)}
+                  placeholder="Optionele notities..."
+                  rows="2"
+                />
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleAddExpense}
+              >
+                Opslaan
+              </button>
+            </div>
+          )}
+
+          {/* Expenses list */}
+          {expenses.length > 0 && (
+            <div className="expenses-list">
+              <h3 className="expenses-list-title">Uitgaven</h3>
+              {expenses.map((expense) => (
+                <div key={expense.id} className="expense-item">
+                  <div className="expense-item-info">
+                    <span className="expense-item-category">{expense.category}</span>
+                    <span className="expense-item-amount">{formatCurrency(expense.amount)}</span>
+                  </div>
+                  {expense.notes && (
+                    <span className="expense-item-notes">{expense.notes}</span>
+                  )}
+                  <button
+                    type="button"
+                    className="expense-remove-btn"
+                    onClick={() => handleRemoveExpense(expense.id)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Empty state */}
         {statements.length === 0 ? (
