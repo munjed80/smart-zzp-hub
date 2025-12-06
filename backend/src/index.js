@@ -2,11 +2,14 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import authRouter from './routes/auth.routes.js';
 import worklogRoutes from './routes/worklog.routes.js';
 import companiesRouter from './routes/companies.routes.js';
 import zzpUsersRouter from './routes/zzp-users.routes.js';
 import statementsRouter from './routes/statements.routes.js';
 import invoicesRouter from './routes/invoices.routes.js';
+import expensesRouter from './routes/expenses.routes.js';
+import btwRouter from './routes/btw.routes.js';
 
 dotenv.config();
 
@@ -29,11 +32,14 @@ app.get('/api/health', (req, res) => {
 });
 
 // Mount routes
+app.use('/api/auth', authRouter);
 app.use('/api/worklogs', worklogRoutes);
 app.use('/api/companies', companiesRouter);
 app.use('/api/zzp-users', zzpUsersRouter);
 app.use('/api/statements', statementsRouter);
 app.use('/api/invoices', invoicesRouter);
+app.use('/api/expenses', expensesRouter);
+app.use('/api/btw', btwRouter);
 
 // 404 handler
 app.use((req, res) => {

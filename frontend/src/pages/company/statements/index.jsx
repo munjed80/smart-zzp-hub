@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../../config/api';
+import { getUser, isAuthenticated } from '../../../services/auth';
 import CompanyHeader from '../../../components/CompanyHeader';
 import '../../statements/styles.css';
 import '../worklogs/worklogs.css';
@@ -77,18 +78,25 @@ function CompanyStatementsPage() {
   const [statements, setStatements] = useState([]);
   const [loadingStatements, setLoadingStatements] = useState(true);
 
-  // Check authentication on mount - redirect to home if no companyId
+  // Check authentication on mount - redirect to login if not authenticated
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedCompanyId = localStorage.getItem('companyId');
-      
-      // If missing, redirect to home page
-      if (!storedCompanyId) {
-        window.location.href = '/';
+      if (!isAuthenticated()) {
+        window.location.href = '/login';
         return;
       }
-      
-      setCompanyId(storedCompanyId);
+      const user = getUser();
+      if (user && user.userType === 'company' && user.profileId) {
+        setCompanyId(user.profileId);
+      } else {
+        // Fallback to localStorage for backward compatibility
+        const storedCompanyId = localStorage.getItem('companyId');
+        if (storedCompanyId) {
+          setCompanyId(storedCompanyId);
+        } else {
+          window.location.href = '/';
+        }
+      }
     }
   }, []);
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../config/api';
+import { getUser, isAuthenticated } from '../../services/auth';
 import Header from '../../components/Header';
 import './styles.css';
 
@@ -57,15 +58,16 @@ function StatementsPage() {
   const [generatingInvoice, setGeneratingInvoice] = useState(null);
   const [invoiceDownload, setInvoiceDownload] = useState(null);
 
-  // Get ZZP ID from localStorage
+  // Get ZZP ID from auth service
   const [zzpId, setZzpId] = useState(null);
 
-  // Expenses state (stored locally in component)
+  // Expenses state (stored in database via API)
   const [expenses, setExpenses] = useState([]);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [expenseCategory, setExpenseCategory] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expenseNotes, setExpenseNotes] = useState('');
+  const [expenseDate, setExpenseDate] = useState('');
 
   /**
    * Calculate BTW (VAT) totals from statements and expenses
@@ -96,7 +98,7 @@ function StatementsPage() {
   /**
    * Handle adding a new expense
    */
-  function handleAddExpense() {
+  async function handleAddExpense() {
     // Validate inputs
     if (!expenseCategory.trim()) {
       return;
@@ -107,41 +109,84 @@ function StatementsPage() {
       return;
     }
 
-    // Add new expense to state
-    const newExpense = {
-      id: Date.now(),
-      category: expenseCategory.trim(),
-      amount: amount,
-      notes: expenseNotes.trim()
-    };
+    // Use current date if no date provided
+    const dateToUse = expenseDate || new Date().toISOString().split('T')[0];
 
-    setExpenses([...expenses, newExpense]);
+    try {
+      // POST to API
+      const response = await fetch(`${API_BASE_URL}/api/expenses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          zzpId,
+          expenseDate: dateToUse,
+          category: expenseCategory.trim(),
+          amount: amount,
+          notes: expenseNotes.trim() || null
+        })
+      });
 
-    // Reset form
-    setExpenseCategory('');
-    setExpenseAmount('');
-    setExpenseNotes('');
-    setShowExpenseForm(false);
+      if (!response.ok) {
+        throw new Error('Kan uitgave niet opslaan');
+      }
+
+      const savedExpense = await response.json();
+      setExpenses([savedExpense, ...expenses]);
+
+      // Reset form
+      setExpenseCategory('');
+      setExpenseAmount('');
+      setExpenseNotes('');
+      setExpenseDate('');
+      setShowExpenseForm(false);
+    } catch (err) {
+      console.error('Error saving expense:', err);
+      setError(err.message || 'Fout bij opslaan uitgave');
+    }
   }
 
   /**
    * Handle removing an expense
-   * @param {number} expenseId - ID of expense to remove
+   * @param {string} expenseId - ID of expense to remove
    */
-  function handleRemoveExpense(expenseId) {
-    setExpenses(expenses.filter(exp => exp.id !== expenseId));
+  async function handleRemoveExpense(expenseId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/expenses/${expenseId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok && response.status !== 204) {
+        throw new Error('Kan uitgave niet verwijderen');
+      }
+
+      setExpenses(expenses.filter(exp => exp.id !== expenseId));
+    } catch (err) {
+      console.error('Error deleting expense:', err);
+      setError(err.message || 'Fout bij verwijderen uitgave');
+    }
   }
 
-  // Check authentication on mount - redirect to login if no zzpId
+  // Check authentication on mount - redirect to login if not authenticated
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedZzpId = localStorage.getItem('zzpId');
-      if (!storedZzpId) {
-        // Redirect to login page if not authenticated
+      if (!isAuthenticated()) {
         window.location.href = '/login';
         return;
       }
-      setZzpId(storedZzpId);
+      const user = getUser();
+      if (user && user.profileId) {
+        setZzpId(user.profileId);
+      } else {
+        // Fallback to localStorage for backward compatibility
+        const storedZzpId = localStorage.getItem('zzpId');
+        if (storedZzpId) {
+          setZzpId(storedZzpId);
+        } else {
+          window.location.href = '/login';
+        }
+      }
     }
   }, []);
 
@@ -187,6 +232,35 @@ function StatementsPage() {
     }
 
     fetchStatements();
+  }, [zzpId]);
+
+  /**
+   * Fetch expenses from the API
+   */
+  useEffect(() => {
+    // Wait for zzpId to be set (after auth check)
+    if (!zzpId) {
+      return;
+    }
+
+    async function fetchExpenses() {
+      try {
+        const url = `${API_BASE_URL}/api/expenses?zzpId=${zzpId}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error('Kan uitgaven niet laden');
+        }
+
+        const data = await response.json();
+        setExpenses(data.items || []);
+      } catch (err) {
+        console.error('Error fetching expenses:', err);
+        // Don't set error - expenses are not critical
+      }
+    }
+
+    fetchExpenses();
   }, [zzpId]);
 
   /**
@@ -350,6 +424,25 @@ function StatementsPage() {
                 <span className="btw-amount btw-balance">{formatCurrency(btwTotals.btwBalance)}</span>
               </div>
             </div>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+              <a
+                href="/btw"
+                className="btn btn-primary"
+              >
+                Uitgebreid overzicht
+              </a>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  const currentYear = new Date().getFullYear();
+                  const url = `${API_BASE_URL}/api/btw/export?scope=zzp&zzpId=${zzpId}&period=year&year=${currentYear}`;
+                  window.open(url, '_blank');
+                }}
+              >
+                Exporteer als CSV
+              </button>
+            </div>
           </div>
         )}
 
@@ -366,6 +459,19 @@ function StatementsPage() {
           {/* Expense form */}
           {showExpenseForm && (
             <div className="expense-form">
+              <div className="expense-form-group">
+                <label htmlFor="expenseDate" className="expense-label">
+                  Datum
+                </label>
+                <input
+                  type="date"
+                  id="expenseDate"
+                  className="expense-input"
+                  value={expenseDate}
+                  onChange={(e) => setExpenseDate(e.target.value)}
+                />
+              </div>
+
               <div className="expense-form-group">
                 <label htmlFor="expenseCategory" className="expense-label">
                   Categorie
@@ -427,6 +533,9 @@ function StatementsPage() {
               {expenses.map((expense) => (
                 <div key={expense.id} className="expense-item">
                   <div className="expense-item-info">
+                    <span className="expense-item-date">
+                      {expense.expense_date ? new Date(expense.expense_date).toLocaleDateString('nl-NL') : ''}
+                    </span>
                     <span className="expense-item-category">{expense.category}</span>
                     <span className="expense-item-amount">{formatCurrency(expense.amount)}</span>
                   </div>
