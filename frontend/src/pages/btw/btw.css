@@ -49,6 +49,19 @@
   background-clip: text;
 }
 
+/* Page header with title and actions */
+.btw-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.btw-header .btw-title {
+  margin: 0;
+}
+
 /* Loading and error states */
 .btw-loading {
   text-align: center;
@@ -557,5 +570,142 @@
   .btw-chart-y-axis {
     width: 60px;
     font-size: 0.625rem;
+  }
+}
+
+/* BTW Aangifte Hulp specific styles */
+.btw-aangifte-form {
+  background-color: var(--btw-bg-card);
+  border-radius: 0.75rem;
+  border: 1px solid var(--btw-border);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.btw-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.btw-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 120px;
+}
+
+.btw-form-group button {
+  width: 100%;
+}
+
+.btw-aangifte-help {
+  background-color: var(--btw-bg-card);
+  border-radius: 0.75rem;
+  border: 1px solid var(--btw-border);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.btw-help-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.btw-help-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--btw-border);
+}
+
+.btw-help-row:last-child {
+  border-bottom: none;
+}
+
+.btw-help-label {
+  font-size: 1rem;
+  color: var(--btw-text-secondary);
+}
+
+.btw-help-value {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--btw-text-primary);
+  font-feature-settings: 'tnum';
+}
+
+.btw-help-total {
+  border-top: 2px solid var(--btw-border);
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+}
+
+.btw-help-total .btw-help-label {
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: var(--btw-text-primary);
+}
+
+.btw-help-total .btw-help-amount {
+  font-size: 1.5rem;
+  color: var(--btw-accent-primary);
+}
+
+.btw-help-info {
+  background-color: rgba(0, 217, 255, 0.1);
+  border: 1px solid var(--btw-accent-secondary);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  color: var(--btw-text-secondary);
+  line-height: 1.6;
+}
+
+.btw-help-info p {
+  margin: 0;
+}
+
+.btw-help-info strong {
+  color: var(--btw-accent-secondary);
+}
+
+.btw-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+/* Responsive adjustments for aangifte form */
+@media (max-width: 640px) {
+  .btw-form-row {
+    flex-direction: column;
+  }
+
+  .btw-form-group {
+    min-width: 100%;
+  }
+
+  .btw-help-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .btw-help-label,
+  .btw-help-value {
+    font-size: 0.9375rem;
+  }
+
+  .btw-help-total .btw-help-label {
+    font-size: 1rem;
+  }
+
+  .btw-help-total .btw-help-amount {
+    font-size: 1.25rem;
   }
 }

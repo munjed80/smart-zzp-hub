@@ -243,7 +243,12 @@ function ZzpBtwPage() {
     <div className="btw-page">
       <Header />
       <div className="btw-container">
-        <h1 className="btw-title">BTW Overzicht</h1>
+        <div className="btw-header">
+          <h1 className="btw-title">BTW Overzicht</h1>
+          <a href="/btw/aangifte" className="btw-btn btw-btn-primary">
+            BTW aangifte hulp
+          </a>
+        </div>
 
         {/* Error message */}
         {error && <div className="btw-error">{error}</div>}
