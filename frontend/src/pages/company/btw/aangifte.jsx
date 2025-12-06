@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL } from '../../../config/api';
 import CompanyHeader from '../../../components/CompanyHeader';
 import '../../btw/btw.css';
@@ -51,7 +51,7 @@ function CompanyBtwAangifteHulpPage() {
   /**
    * Fetch BTW data from API
    */
-  async function fetchBtwData() {
+  const fetchBtwData = useCallback(async () => {
     if (!companyId) return;
 
     try {
@@ -74,7 +74,7 @@ function CompanyBtwAangifteHulpPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [companyId, year, quarter]);
 
   /**
    * Handle calculate button click
@@ -88,8 +88,7 @@ function CompanyBtwAangifteHulpPage() {
     if (companyId) {
       fetchBtwData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyId, year, quarter]);
+  }, [companyId, fetchBtwData]);
 
   // Calculate BTW amounts
   const subtotal = btwData?.subtotal || 0;
