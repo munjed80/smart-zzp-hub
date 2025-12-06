@@ -1,4 +1,5 @@
 import React from 'react';
+import { logout } from '../services/auth';
 import './Header.css';
 
 /**
@@ -7,12 +8,10 @@ import './Header.css';
  */
 function CompanyHeader() {
   /**
-   * Handle logout - clear both companyId and zzpId from localStorage and redirect to home
+   * Handle logout - clear auth and redirect to login
    */
   function handleLogout() {
-    localStorage.removeItem('companyId');
-    localStorage.removeItem('zzpId');
-    window.location.href = '/';
+    logout();
   }
 
   return (

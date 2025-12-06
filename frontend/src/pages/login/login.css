@@ -98,6 +98,51 @@
   width: 100%;
 }
 
+/* User type selector */
+.user-type-selector {
+  display: flex;
+  gap: 1rem;
+}
+
+.user-type-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.user-type-option input[type="radio"] {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+/* Login toggle */
+.login-toggle {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.toggle-button {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 0.875rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.toggle-button:hover {
+  color: #1d4ed8;
+}
+
+.toggle-button:disabled {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
 /* Home page buttons */
 .home-buttons {
   display: flex;

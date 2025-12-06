@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { API_BASE_URL } from '../../../config/api';
+import { getUser, isAuthenticated } from '../../../services/auth';
 import CompanyHeader from '../../../components/CompanyHeader';
 import '../../btw/btw.css';
 
@@ -53,12 +54,22 @@ function CompanyBtwPage() {
   // Check authentication on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedCompanyId = localStorage.getItem('companyId');
-      if (!storedCompanyId) {
-        window.location.href = '/';
+      if (!isAuthenticated()) {
+        window.location.href = '/login';
         return;
       }
-      setCompanyId(storedCompanyId);
+      const user = getUser();
+      if (user && user.userType === 'company' && user.profileId) {
+        setCompanyId(user.profileId);
+      } else {
+        // Fallback to localStorage for backward compatibility
+        const storedCompanyId = localStorage.getItem('companyId');
+        if (storedCompanyId) {
+          setCompanyId(storedCompanyId);
+        } else {
+          window.location.href = '/';
+        }
+      }
     }
   }, []);
 

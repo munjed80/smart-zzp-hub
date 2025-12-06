@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../config/api';
+import { getUser, isAuthenticated } from '../../services/auth';
 import Header from '../../components/Header';
 import './styles.css';
 
@@ -57,7 +58,7 @@ function StatementsPage() {
   const [generatingInvoice, setGeneratingInvoice] = useState(null);
   const [invoiceDownload, setInvoiceDownload] = useState(null);
 
-  // Get ZZP ID from localStorage
+  // Get ZZP ID from auth service
   const [zzpId, setZzpId] = useState(null);
 
   // Expenses state (stored in database via API)
@@ -167,16 +168,25 @@ function StatementsPage() {
     }
   }
 
-  // Check authentication on mount - redirect to login if no zzpId
+  // Check authentication on mount - redirect to login if not authenticated
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedZzpId = localStorage.getItem('zzpId');
-      if (!storedZzpId) {
-        // Redirect to login page if not authenticated
+      if (!isAuthenticated()) {
         window.location.href = '/login';
         return;
       }
-      setZzpId(storedZzpId);
+      const user = getUser();
+      if (user && user.profileId) {
+        setZzpId(user.profileId);
+      } else {
+        // Fallback to localStorage for backward compatibility
+        const storedZzpId = localStorage.getItem('zzpId');
+        if (storedZzpId) {
+          setZzpId(storedZzpId);
+        } else {
+          window.location.href = '/login';
+        }
+      }
     }
   }, []);
 

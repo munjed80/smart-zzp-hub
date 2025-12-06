@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import authRouter from './routes/auth.routes.js';
 import worklogRoutes from './routes/worklog.routes.js';
 import companiesRouter from './routes/companies.routes.js';
 import zzpUsersRouter from './routes/zzp-users.routes.js';
@@ -31,6 +32,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Mount routes
+app.use('/api/auth', authRouter);
 app.use('/api/worklogs', worklogRoutes);
 app.use('/api/companies', companiesRouter);
 app.use('/api/zzp-users', zzpUsersRouter);

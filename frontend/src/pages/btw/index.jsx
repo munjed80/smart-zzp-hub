@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { API_BASE_URL } from '../../config/api';
+import { getUser, isAuthenticated } from '../../services/auth';
 import Header from '../../components/Header';
 import './btw.css';
 
@@ -54,12 +55,22 @@ function ZzpBtwPage() {
   // Check authentication on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedZzpId = localStorage.getItem('zzpId');
-      if (!storedZzpId) {
+      if (!isAuthenticated()) {
         window.location.href = '/login';
         return;
       }
-      setZzpId(storedZzpId);
+      const user = getUser();
+      if (user && user.profileId) {
+        setZzpId(user.profileId);
+      } else {
+        // Fallback to localStorage for backward compatibility
+        const storedZzpId = localStorage.getItem('zzpId');
+        if (storedZzpId) {
+          setZzpId(storedZzpId);
+        } else {
+          window.location.href = '/login';
+        }
+      }
     }
   }, []);
 
