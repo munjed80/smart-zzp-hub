@@ -95,35 +95,3 @@ CREATE INDEX idx_statements_zzp_id ON statements(zzp_id);
 CREATE INDEX idx_statements_year_week ON statements(year, week_number);
 CREATE INDEX idx_expenses_zzp_id ON expenses(zzp_id);
 CREATE INDEX idx_expenses_expense_date ON expenses(expense_date);
-
--- Seed data for development/testing
--- Test user (password: 'test123' - bcrypt hashed)
-INSERT INTO users (id, email, password_hash, full_name, user_type)
-VALUES (
-    'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-    'test@example.com',
-    '$2b$10$rQZGJ4H.8RQX8p7JyNXGj.9XKvNkLQ.Kz6hJvKqZpXqJxJQG6Kq2e',
-    'Test User',
-    'zzp'
-);
-
--- Test company
-INSERT INTO companies (id, user_id, name, kvk_number, btw_number, email)
-VALUES (
-    'c1d2e3f4-a5b6-7890-cdef-123456789abc',
-    'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-    'Test Company BV',
-    '12345678',
-    'NL123456789B01',
-    'info@testcompany.nl'
-);
-
--- Test ZZP user linked to the test company
-INSERT INTO zzp_users (id, user_id, company_id, full_name, email)
-VALUES (
-    'z1z2z3z4-a5b6-7890-cdef-zzp123456789',
-    'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-    'c1d2e3f4-a5b6-7890-cdef-123456789abc',
-    'Test ZZP User',
-    'test@example.com'
-);

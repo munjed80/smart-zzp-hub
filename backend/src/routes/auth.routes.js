@@ -2,12 +2,9 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query } from '../db/client.js';
+import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/jwt.js';
 
 const router = Router();
-
-// JWT secret - should be in environment variable in production
-const JWT_SECRET = process.env.JWT_SECRET || 'smart-zzp-hub-secret-key';
-const JWT_EXPIRES_IN = '7d';
 
 /**
  * POST /api/auth/register

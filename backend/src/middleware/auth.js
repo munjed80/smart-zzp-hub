@@ -1,7 +1,5 @@
 import jwt from 'jsonwebtoken';
-
-// JWT secret - should be in environment variable in production
-const JWT_SECRET = process.env.JWT_SECRET || 'smart-zzp-hub-secret-key';
+import { JWT_SECRET } from '../config/jwt.js';
 
 /**
  * Authentication middleware
