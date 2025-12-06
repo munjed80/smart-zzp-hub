@@ -391,8 +391,10 @@ function StatementsPage() {
       const downloadUrl = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = downloadUrl;
-      // Sanitize week number for filename
-      const sanitizedWeekNumber = weekNumber || 'unknown';
+      // Validate and sanitize week number for filename (should be a positive integer)
+      const sanitizedWeekNumber = (typeof weekNumber === 'number' && weekNumber > 0) 
+        ? Math.floor(weekNumber) 
+        : 'unknown';
       link.download = `factuur-week-${sanitizedWeekNumber}.pdf`;
       document.body.appendChild(link);
       link.click();
