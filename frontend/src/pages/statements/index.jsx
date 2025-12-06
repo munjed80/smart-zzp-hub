@@ -440,7 +440,12 @@ function StatementsPage() {
     <div className="statements-page">
       <Header />
       <div className="container">
-        <h1 className="page-title">Overzichten</h1>
+        <div className="page-header">
+          <h1 className="page-title">Overzichten</h1>
+          <a href="/dashboard" className="btn btn-primary">
+            Dashboard
+          </a>
+        </div>
         
         {/* Error notification */}
         {error && (

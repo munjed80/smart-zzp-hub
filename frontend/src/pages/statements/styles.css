@@ -26,6 +26,19 @@
   margin: 0 0 1.5rem 0;
 }
 
+/* Page header with title and actions */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+.page-header .page-title {
+  margin: 0;
+}
+
 /* Loading state */
 .loading {
   text-align: center;
