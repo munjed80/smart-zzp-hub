@@ -203,6 +203,13 @@
   background-color: #4b5563;
 }
 
+/* Action buttons container */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 /* Responsive design */
 @media (max-width: 640px) {
   .container {

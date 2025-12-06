@@ -355,6 +355,57 @@ function StatementsPage() {
     handleGenerateInvoice(statementId);
   }
 
+  /**
+   * Download invoice as PDF file
+   * @param {string} statementId - Statement ID
+   * @param {number} weekNumber - Week number for filename
+   */
+  async function handleDownloadInvoice(statementId, weekNumber) {
+    try {
+      setGeneratingInvoice(statementId);
+      setError(null);
+
+      const response = await fetch(`${API_BASE_URL}/api/invoices/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ statementId })
+      });
+
+      if (!response.ok) {
+        throw new Error('Kan factuur niet downloaden');
+      }
+
+      const invoice = await response.json();
+
+      // Validate PDF data before processing
+      if (!invoice.pdf || typeof invoice.pdf !== 'string') {
+        throw new Error('Ongeldige factuur data ontvangen');
+      }
+
+      // Create blob from base64 PDF
+      const pdfBlob = base64ToBlob(invoice.pdf, 'application/pdf');
+      
+      // Create download link and trigger download
+      const downloadUrl = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `factuur-week-${weekNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the URL
+      URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error('Error downloading invoice:', err);
+      setError(err.message || 'Fout bij downloaden factuur');
+    } finally {
+      setGeneratingInvoice(null);
+    }
+  }
+
   // Render loading state
   if (loading) {
     return (
@@ -599,6 +650,23 @@ function StatementsPage() {
                         >
                           {generatingInvoice === statement.id ? 'Bezig...' : 'Maak factuur'}
                         </button>
+                      ) : (statement.status === 'invoiced' || statement.status === 'paid') ? (
+                        <div className="action-buttons">
+                          <button
+                            className="btn btn-secondary"
+                            onClick={() => handleViewInvoice(statement.id)}
+                            disabled={generatingInvoice === statement.id}
+                          >
+                            {generatingInvoice === statement.id ? 'Bezig...' : 'Bekijk'}
+                          </button>
+                          <button
+                            className="btn btn-primary"
+                            onClick={() => handleDownloadInvoice(statement.id, statement.week_number)}
+                            disabled={generatingInvoice === statement.id}
+                          >
+                            Download PDF
+                          </button>
+                        </div>
                       ) : (
                         <button
                           className="btn btn-secondary"
