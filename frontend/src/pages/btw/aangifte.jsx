@@ -58,7 +58,7 @@ function BtwAangifteHulpPage() {
       setLoading(true);
       setError(null);
 
-      const url = `${API_BASE_URL}/api/btw/transactions?scope=zzp&zzpId=${zzpId}&period=quarter&year=${year}&value=${quarter}`;
+      const url = `${API_BASE_URL}/api/btw/transactions?scope=zzp&zzpId=${encodeURIComponent(zzpId)}&period=quarter&year=${encodeURIComponent(year)}&value=${encodeURIComponent(quarter)}`;
       
       const response = await fetch(url);
       
@@ -83,12 +83,13 @@ function BtwAangifteHulpPage() {
     fetchBtwData();
   }
 
-  // Auto-fetch on mount when zzpId is available
+  // Auto-fetch on mount and when parameters change
   useEffect(() => {
     if (zzpId) {
       fetchBtwData();
     }
-  }, [zzpId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zzpId, year, quarter]);
 
   // Calculate BTW amounts
   const btwOverOmzet = btwData?.summary?.btwReceived || 0;
