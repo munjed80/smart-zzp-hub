@@ -63,13 +63,11 @@ app.listen(PORT, () => {
   console.log('=== Smart ZZP Hub Backend ===');
   console.log(`Server running on port ${PORT}`);
   
-  // Log DATABASE_URL status (masked for security)
+  // Log DATABASE_URL status (fully masked for security)
   if (process.env.DATABASE_URL) {
     try {
-      const dbUrl = new URL(process.env.DATABASE_URL);
-      // Mask sensitive details - only show that connection is configured
-      const hostMasked = dbUrl.hostname.substring(0, 3) + '***';
-      console.log(`Database: ${hostMasked} (connected)`);
+      new URL(process.env.DATABASE_URL); // Validate URL format
+      console.log('Database: connected');
     } catch (e) {
       console.log('Database: configured (invalid URL format)');
     }
