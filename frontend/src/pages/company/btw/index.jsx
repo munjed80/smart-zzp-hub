@@ -231,7 +231,12 @@ function CompanyBtwPage() {
     <div className="btw-page">
       <CompanyHeader />
       <div className="btw-container">
-        <h1 className="btw-title">BTW Overzicht (bedrijf)</h1>
+        <div className="btw-header">
+          <h1 className="btw-title">BTW Overzicht (bedrijf)</h1>
+          <a href="/company/btw/aangifte" className="btw-btn btw-btn-primary">
+            BTW aangifte hulp
+          </a>
+        </div>
 
         {/* Error message */}
         {error && <div className="btw-error">{error}</div>}

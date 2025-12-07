@@ -26,6 +26,19 @@
   margin: 0 0 1.5rem 0;
 }
 
+/* Page header with title and actions */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+.page-header .page-title {
+  margin: 0;
+}
+
 /* Loading state */
 .loading {
   text-align: center;
@@ -201,6 +214,26 @@
 
 .btn-secondary:hover:not(:disabled) {
   background-color: #4b5563;
+}
+
+/* Action buttons container */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Invoice number styling */
+.invoice-number {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: #2563eb;
+  font-size: 0.875rem;
+}
+
+.invoice-number-empty {
+  color: #9ca3af;
+  font-style: italic;
 }
 
 /* Responsive design */
