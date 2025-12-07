@@ -14,17 +14,43 @@ const PAGE_BREAK_THRESHOLD = 700;
 const FOOTER_POSITION = 750;
 
 /**
- * Generate a unique invoice number
- * Format: INVOICE-{year}{weekNumber}-{uniqueId}
- * @param {number} year - ISO year
- * @param {number} weekNumber - ISO week number
- * @param {string|number} uniqueId - Unique identifier (UUID or number)
+ * Generate a legal Dutch invoice number
+ * Format: FACT-{year}-{sequence padded 4 digits}
+ * Example: FACT-2025-0007
+ * @param {number} year - Year
+ * @param {number} sequence - Sequential number for the year
  * @returns {string} - Invoice number
  */
-function generateInvoiceNumber(year, weekNumber, uniqueId) {
-  const weekStr = String(weekNumber).padStart(2, '0');
-  const shortId = String(uniqueId).slice(0, 8).toUpperCase();
-  return `INVOICE-${year}${weekStr}-${shortId}`;
+function generateLegalInvoiceNumber(year, sequence) {
+  const paddedSequence = String(sequence).padStart(4, '0');
+  return `FACT-${year}-${paddedSequence}`;
+}
+
+/**
+ * Get next invoice sequence number for the year
+ * @param {number} year - Year to get sequence for
+ * @returns {Promise<number>} - Next sequence number
+ */
+async function getNextInvoiceSequence(year) {
+  const result = await query(
+    `SELECT invoice_number 
+     FROM invoices 
+     WHERE invoice_number LIKE $1
+     ORDER BY invoice_number DESC 
+     LIMIT 1`,
+    [`FACT-${year}-%`]
+  );
+
+  if (result.rows.length === 0) {
+    return 1;
+  }
+
+  // Extract sequence from invoice number (FACT-2025-0007 -> 0007 -> 7)
+  const lastInvoiceNumber = result.rows[0].invoice_number;
+  const parts = lastInvoiceNumber.split('-');
+  const lastSequence = parseInt(parts[2]) || 0;
+  
+  return lastSequence + 1;
 }
 
 /**
@@ -181,6 +207,43 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ error: 'Missing required field: statementId' });
     }
 
+    // Check if an invoice already exists for this statement
+    const existingInvoiceResult = await query(
+      `SELECT id, invoice_number, file_url, created_at
+       FROM invoices
+       WHERE statement_id = $1`,
+      [statementId]
+    );
+
+    if (existingInvoiceResult.rows.length > 0) {
+      // Invoice already exists, return existing invoice metadata
+      const existingInvoice = existingInvoiceResult.rows[0];
+      
+      // Fetch statement details to get additional info
+      const statementResult = await query(
+        `SELECT year, week_number, total_amount, currency
+         FROM statements
+         WHERE id = $1`,
+        [statementId]
+      );
+      
+      const statement = statementResult.rows[0];
+      
+      // Return existing invoice metadata (without regenerating PDF)
+      return res.status(200).json({
+        invoiceId: existingInvoice.id,
+        invoiceNumber: existingInvoice.invoice_number,
+        statementId: statementId,
+        year: statement.year,
+        weekNumber: statement.week_number,
+        total: statement.total_amount,
+        currency: statement.currency || 'EUR',
+        createdAt: existingInvoice.created_at,
+        fileUrl: existingInvoice.file_url,
+        isExisting: true
+      });
+    }
+
     // Fetch statement with company and ZZP user info
     const statementResult = await query(
       `SELECT 
@@ -244,8 +307,10 @@ router.post('/generate', async (req, res) => {
     const btw = subtotal * BTW_RATE;
     const total = subtotal + btw;
 
-    // Generate invoice number
-    const invoiceNumber = generateInvoiceNumber(statement.year, statement.week_number, statement.id);
+    // Generate invoice number using legal Dutch format
+    const currentYear = new Date().getFullYear();
+    const sequence = await getNextInvoiceSequence(currentYear);
+    const invoiceNumber = generateLegalInvoiceNumber(currentYear, sequence);
 
     // Prepare data for PDF
     const pdfData = {
@@ -279,8 +344,20 @@ router.post('/generate', async (req, res) => {
     const pdfBuffer = await generateInvoicePDF(pdfData);
     const pdfBase64 = pdfBuffer.toString('base64');
 
+    // Store invoice in database
+    const insertResult = await query(
+      `INSERT INTO invoices (statement_id, invoice_number, file_url)
+       VALUES ($1, $2, $3)
+       RETURNING id, created_at`,
+      [statementId, invoiceNumber, null] // file_url is null for now (could be S3 URL in production)
+    );
+
+    const invoiceId = insertResult.rows[0].id;
+    const createdAt = insertResult.rows[0].created_at;
+
     // Return invoice metadata and PDF
     res.status(201).json({
+      invoiceId,
       invoiceNumber,
       statementId: statement.id,
       companyId: statement.company_id,
@@ -292,12 +369,39 @@ router.post('/generate', async (req, res) => {
       total: parseFloat(total.toFixed(2)),
       currency: statement.currency || 'EUR',
       worklogCount: worklogs.length,
-      generatedAt: new Date().toISOString(),
-      pdf: pdfBase64
+      createdAt: createdAt,
+      pdf: pdfBase64,
+      isExisting: false
     });
   } catch (error) {
     console.error('Error generating invoice:', error);
     res.status(500).json({ error: 'Failed to generate invoice' });
+  }
+});
+
+/**
+ * GET /api/invoices/by-statement/:statementId
+ * Get invoice information for a statement
+ */
+router.get('/by-statement/:statementId', async (req, res) => {
+  try {
+    const { statementId } = req.params;
+
+    const result = await query(
+      `SELECT id, invoice_number, file_url, created_at
+       FROM invoices
+       WHERE statement_id = $1`,
+      [statementId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Invoice not found for this statement' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching invoice:', error);
+    res.status(500).json({ error: 'Failed to fetch invoice' });
   }
 });
 
