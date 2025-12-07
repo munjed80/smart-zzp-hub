@@ -67,12 +67,38 @@ This document summarizes the quality audit performed on the Smart ZZP Hub codeba
 
 ## Metrics
 
-- **Backend Routes**: 8 modules
-- **Frontend Pages**: 9 unique pages
+- **Backend Routes**: 9 modules (including AI Boekhouder analytics engine)
+- **Frontend Pages**: 10 unique pages (including AI Boekhouder)
 - **API Endpoints**: 20+ documented
 - **Components**: 2 shared components
 - **Database Tables**: 7 core tables
 - **Code Quality**: No major issues found
+
+## AI Boekhouder Analytics Engine
+
+### New Capabilities (December 2024)
+
+The AI Boekhouder has been upgraded from a simple rule-based helper to a comprehensive analytics engine:
+
+**Advanced Analysis:**
+- Monthly aggregation of income and expenses (up to 24 months)
+- Rolling averages (3m, 6m, 12m) for trend detection
+- Income volatility calculation using standard deviation
+- Financial health scoring (0-100) based on multiple factors
+- BTW calculation per quarter with automatic aggregation
+
+**Intelligence Features:**
+- Smart observations: Identifies patterns in financial data
+- Personalized recommendations: Context-aware advice based on actual metrics
+- Question classification: Interprets user questions (btw, income, expenses, general)
+- Risk assessment: Highlights negative months and high volatility periods
+- Growth tracking: Compares recent performance to historical averages
+
+**Data Quality:**
+- Uses paid statements for accurate income analysis
+- Handles edge cases (no data, negative profits, missing months)
+- Robust error handling and validation
+- All monetary values properly rounded to 2 decimals
 
 ## Recommendations for Next Steps
 
