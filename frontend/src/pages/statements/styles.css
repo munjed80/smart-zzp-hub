@@ -223,6 +223,19 @@
   flex-wrap: wrap;
 }
 
+/* Invoice number styling */
+.invoice-number {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: #2563eb;
+  font-size: 0.875rem;
+}
+
+.invoice-number-empty {
+  color: #9ca3af;
+  font-style: italic;
+}
+
 /* Responsive design */
 @media (max-width: 640px) {
   .container {
