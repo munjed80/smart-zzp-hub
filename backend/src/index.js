@@ -23,6 +23,8 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 // Rate limiting middleware
+// Global rate limiter protects all endpoints from abuse
+// Applied before other middleware to limit resource consumption
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // 100 requests per windowMs
@@ -61,11 +63,13 @@ app.listen(PORT, () => {
   console.log('=== Smart ZZP Hub Backend ===');
   console.log(`Server running on port ${PORT}`);
   
-  // Log DATABASE_URL host (masked for security)
+  // Log DATABASE_URL status (masked for security)
   if (process.env.DATABASE_URL) {
     try {
       const dbUrl = new URL(process.env.DATABASE_URL);
-      console.log(`Database: ${dbUrl.hostname}:${dbUrl.port || '5432'} (${dbUrl.pathname})`);
+      // Mask sensitive details - only show that connection is configured
+      const hostMasked = dbUrl.hostname.substring(0, 3) + '***';
+      console.log(`Database: ${hostMasked} (connected)`);
     } catch (e) {
       console.log('Database: configured (invalid URL format)');
     }

@@ -1,11 +1,11 @@
 /**
  * Send standardized error response
  * @param {Object} res - Express response object
- * @param {number} statusCode - HTTP status code
+ * @param {number} statusCode - HTTP status code (100-599, covering 1xx-5xx ranges)
  * @param {string} message - Error message (should be in Dutch for user-facing errors)
  */
 export function sendError(res, statusCode, message) {
-  // Validate inputs
+  // Validate inputs (these errors indicate programming mistakes, not runtime issues)
   if (!res || typeof res.status !== 'function' || typeof res.json !== 'function') {
     throw new Error('Invalid response object');
   }
