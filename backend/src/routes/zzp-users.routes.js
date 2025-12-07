@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { query } from '../db/client.js';
+import { sendError } from '../utils/error.js';
 
 const router = Router();
 
@@ -30,7 +31,7 @@ router.get('/', async (req, res) => {
     res.json({ items: result.rows });
   } catch (error) {
     console.error('Error fetching ZZP users:', error);
-    res.status(500).json({ error: 'Failed to fetch ZZP users' });
+    sendError(res, 500, 'Kon ZZP gebruikers niet ophalen');
   }
 });
 
@@ -48,13 +49,13 @@ router.get('/:id', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'ZZP user not found' });
+      return sendError(res, 404, 'ZZP gebruiker niet gevonden');
     }
 
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error fetching ZZP user:', error);
-    res.status(500).json({ error: 'Failed to fetch ZZP user' });
+    sendError(res, 500, 'Kon ZZP gebruiker niet ophalen');
   }
 });
 
@@ -92,7 +93,7 @@ router.post('/', async (req, res) => {
 
     // Handle foreign key violation
     if (error.code === '23503') {
-      return res.status(400).json({ error: 'Invalid companyId: company does not exist' });
+      return sendError(res, 400, 'Bedrijf bestaat niet');
     }
 
     res.status(500).json({ error: 'Failed to create ZZP user' });
@@ -129,7 +130,7 @@ router.put('/:id', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'ZZP user not found' });
+      return sendError(res, 404, 'ZZP gebruiker niet gevonden');
     }
 
     res.json(result.rows[0]);
@@ -138,7 +139,7 @@ router.put('/:id', async (req, res) => {
 
     // Handle foreign key violation
     if (error.code === '23503') {
-      return res.status(400).json({ error: 'Invalid companyId: company does not exist' });
+      return sendError(res, 400, 'Bedrijf bestaat niet');
     }
 
     res.status(500).json({ error: 'Failed to update ZZP user' });
@@ -159,7 +160,7 @@ router.delete('/:id', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'ZZP user not found' });
+      return sendError(res, 404, 'ZZP gebruiker niet gevonden');
     }
 
     res.status(204).send();

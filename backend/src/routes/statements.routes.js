@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { sendError } from '../utils/error.js';
 import { query } from '../db/client.js';
 import { getCurrentISOWeekInfo, getWeekDateRange } from '../utils/week.js';
 
@@ -16,7 +17,7 @@ router.post('/generate', async (req, res) => {
 
     // Validate required fields
     if (!companyId) {
-      return res.status(400).json({ error: 'Missing required field: companyId' });
+      return sendError(res, 400, 'Bedrijf-ID is verplicht');
     }
 
     // Default to current ISO week if not provided
@@ -139,14 +140,14 @@ router.post('/generate', async (req, res) => {
     // Handle foreign key violations
     if (error.code === '23503') {
       if (error.constraint?.includes('company')) {
-        return res.status(400).json({ error: 'Invalid companyId: company does not exist' });
+        return sendError(res, 400, 'Bedrijf bestaat niet');
       }
       if (error.constraint?.includes('zzp')) {
-        return res.status(400).json({ error: 'Invalid zzpId: ZZP user does not exist' });
+        return sendError(res, 400, 'ZZP gebruiker bestaat niet');
       }
     }
 
-    res.status(500).json({ error: 'Failed to generate statement' });
+    sendError(res, 500, 'Kon overzicht niet genereren');
   }
 });
 
@@ -212,7 +213,7 @@ router.get('/', async (req, res) => {
     res.json({ items: result.rows });
   } catch (error) {
     console.error('Error fetching statements:', error);
-    res.status(500).json({ error: 'Failed to fetch statements' });
+    sendError(res, 500, 'Kon overzichten niet ophalen');
   }
 });
 
@@ -246,13 +247,13 @@ router.get('/:id', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Statement not found' });
+      return sendError(res, 404, 'Overzicht niet gevonden');
     }
 
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error fetching statement:', error);
-    res.status(500).json({ error: 'Failed to fetch statement' });
+    sendError(res, 500, 'Kon overzicht niet ophalen');
   }
 });
 
@@ -266,7 +267,7 @@ router.patch('/:id', async (req, res) => {
     const { status } = req.body;
 
     if (!status) {
-      return res.status(400).json({ error: 'Missing required field: status' });
+      return sendError(res, 400, 'Status is verplicht');
     }
 
     const validStatuses = ['open', 'approved', 'invoiced', 'paid'];
@@ -285,13 +286,13 @@ router.patch('/:id', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Statement not found' });
+      return sendError(res, 404, 'Overzicht niet gevonden');
     }
 
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error updating statement:', error);
-    res.status(500).json({ error: 'Failed to update statement' });
+    sendError(res, 500, 'Kon overzicht niet bijwerken');
   }
 });
 
@@ -309,13 +310,13 @@ router.delete('/:id', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Statement not found' });
+      return sendError(res, 404, 'Overzicht niet gevonden');
     }
 
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting statement:', error);
-    res.status(500).json({ error: 'Failed to delete statement' });
+    sendError(res, 500, 'Kon overzicht niet verwijderen');
   }
 });
 

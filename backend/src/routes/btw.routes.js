@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { sendError } from '../utils/error.js';
 import { query } from '../db/client.js';
 
 const router = Router();
@@ -74,26 +75,26 @@ router.get('/overview', async (req, res) => {
 
     // Validate required fields
     if (!companyId) {
-      return res.status(400).json({ error: 'Missing required field: companyId' });
+      return sendError(res, 400, 'Bedrijf-ID is verplicht');
     }
 
     if (!UUID_REGEX.test(companyId)) {
-      return res.status(400).json({ error: 'Invalid companyId: must be a valid UUID' });
+      return sendError(res, 400, 'Ongeldige bedrijf-ID');
     }
 
     if (!period || !['month', 'quarter', 'year'].includes(period)) {
-      return res.status(400).json({ error: 'Invalid period: must be month, quarter, or year' });
+      return sendError(res, 400, 'Ongeldige periode');
     }
 
     const yearNum = parseInt(year);
     if (!year || isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
-      return res.status(400).json({ error: 'Invalid year: must be a valid year between 2000 and 2100' });
+      return sendError(res, 400, 'Ongeldig jaar');
     }
 
     // Calculate date range
     const dateRange = calculateDateRange(period, yearNum, value);
     if (dateRange.error) {
-      return res.status(400).json({ error: dateRange.error });
+      return sendError(res, 400, 'Ongeldige datumbereik');
     }
     const { startDate, endDate } = dateRange;
 
@@ -123,7 +124,7 @@ router.get('/overview', async (req, res) => {
     });
   } catch (error) {
     console.error('Error calculating BTW overview:', error);
-    res.status(500).json({ error: 'Failed to calculate BTW overview' });
+    sendError(res, 500, 'Kon BTW overzicht niet berekenen');
   }
 });
 
@@ -144,41 +145,41 @@ router.get('/export', async (req, res) => {
 
     // Validate scope
     if (!scope || !['zzp', 'company'].includes(scope)) {
-      return res.status(400).json({ error: 'Invalid scope: must be zzp or company' });
+      return sendError(res, 400, 'Ongeldige scope');
     }
 
     // Validate ID based on scope
     if (scope === 'zzp') {
       if (!zzpId) {
-        return res.status(400).json({ error: 'Missing required field: zzpId (required for scope=zzp)' });
+        return sendError(res, 400, 'ZZP-ID is verplicht');
       }
       if (!UUID_REGEX.test(zzpId)) {
-        return res.status(400).json({ error: 'Invalid zzpId: must be a valid UUID' });
+        return sendError(res, 400, 'Ongeldige ZZP-ID');
       }
     } else if (scope === 'company') {
       if (!companyId) {
-        return res.status(400).json({ error: 'Missing required field: companyId (required for scope=company)' });
+        return sendError(res, 400, 'Bedrijf-ID is verplicht');
       }
       if (!UUID_REGEX.test(companyId)) {
-        return res.status(400).json({ error: 'Invalid companyId: must be a valid UUID' });
+        return sendError(res, 400, 'Ongeldige bedrijf-ID');
       }
     }
 
     // Validate period
     if (!period || !['month', 'quarter', 'year'].includes(period)) {
-      return res.status(400).json({ error: 'Invalid period: must be month, quarter, or year' });
+      return sendError(res, 400, 'Ongeldige periode');
     }
 
     // Validate year
     const yearNum = parseInt(year);
     if (!year || isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
-      return res.status(400).json({ error: 'Invalid year: must be a valid year between 2000 and 2100' });
+      return sendError(res, 400, 'Ongeldig jaar');
     }
 
     // Calculate date range
     const dateRange = calculateDateRange(period, yearNum, value);
     if (dateRange.error) {
-      return res.status(400).json({ error: dateRange.error });
+      return sendError(res, 400, 'Ongeldige datumbereik');
     }
     const { startDate, endDate } = dateRange;
 
@@ -286,7 +287,7 @@ router.get('/export', async (req, res) => {
     res.send(csvContent);
   } catch (error) {
     console.error('Error exporting BTW data:', error);
-    res.status(500).json({ error: 'Failed to export BTW data' });
+    sendError(res, 500, 'Kon BTW data niet exporteren');
   }
 });
 
@@ -307,41 +308,41 @@ router.get('/transactions', async (req, res) => {
 
     // Validate scope
     if (!scope || !['zzp', 'company'].includes(scope)) {
-      return res.status(400).json({ error: 'Invalid scope: must be zzp or company' });
+      return sendError(res, 400, 'Ongeldige scope');
     }
 
     // Validate ID based on scope
     if (scope === 'zzp') {
       if (!zzpId) {
-        return res.status(400).json({ error: 'Missing required field: zzpId (required for scope=zzp)' });
+        return sendError(res, 400, 'ZZP-ID is verplicht');
       }
       if (!UUID_REGEX.test(zzpId)) {
-        return res.status(400).json({ error: 'Invalid zzpId: must be a valid UUID' });
+        return sendError(res, 400, 'Ongeldige ZZP-ID');
       }
     } else if (scope === 'company') {
       if (!companyId) {
-        return res.status(400).json({ error: 'Missing required field: companyId (required for scope=company)' });
+        return sendError(res, 400, 'Bedrijf-ID is verplicht');
       }
       if (!UUID_REGEX.test(companyId)) {
-        return res.status(400).json({ error: 'Invalid companyId: must be a valid UUID' });
+        return sendError(res, 400, 'Ongeldige bedrijf-ID');
       }
     }
 
     // Validate period
     if (!period || !['month', 'quarter', 'year'].includes(period)) {
-      return res.status(400).json({ error: 'Invalid period: must be month, quarter, or year' });
+      return sendError(res, 400, 'Ongeldige periode');
     }
 
     // Validate year
     const yearNum = parseInt(year);
     if (!year || isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
-      return res.status(400).json({ error: 'Invalid year: must be a valid year between 2000 and 2100' });
+      return sendError(res, 400, 'Ongeldig jaar');
     }
 
     // Calculate date range
     const dateRange = calculateDateRange(period, yearNum, value);
     if (dateRange.error) {
-      return res.status(400).json({ error: dateRange.error });
+      return sendError(res, 400, 'Ongeldige datumbereik');
     }
     const { startDate, endDate } = dateRange;
 
@@ -494,7 +495,7 @@ router.get('/transactions', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching BTW transactions:', error);
-    res.status(500).json({ error: 'Failed to fetch BTW transactions' });
+    sendError(res, 500, 'Kon BTW transacties niet ophalen');
   }
 });
 

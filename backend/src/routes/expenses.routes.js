@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { query } from '../db/client.js';
+import { sendError } from '../utils/error.js';
 
 const router = Router();
 
@@ -27,20 +28,17 @@ router.post('/', async (req, res) => {
     if (amount === undefined || amount === null) missingFields.push('amount');
 
     if (missingFields.length > 0) {
-      return res.status(400).json({
-        error: 'Missing required fields',
-        missingFields
-      });
+      return sendError(res, 400, 'Verplichte velden ontbreken');
     }
 
     // Validate UUID format
     if (!UUID_REGEX.test(zzpId)) {
-      return res.status(400).json({ error: 'Invalid zzpId: must be a valid UUID' });
+      return sendError(res, 400, 'Ongeldige ZZP-ID');
     }
 
     // Validate numeric field
     if (typeof amount !== 'number' || isNaN(amount)) {
-      return res.status(400).json({ error: 'Invalid amount: must be a number' });
+      return sendError(res, 400, 'Ongeldig bedrag');
     }
 
     // Insert into database
@@ -58,11 +56,11 @@ router.post('/', async (req, res) => {
     // Handle foreign key violations
     if (error.code === '23503') {
       if (error.constraint?.includes('zzp')) {
-        return res.status(400).json({ error: 'Invalid zzpId: ZZP user does not exist' });
+        return sendError(res, 400, 'ZZP gebruiker bestaat niet');
       }
     }
 
-    res.status(500).json({ error: 'Failed to create expense' });
+    sendError(res, 500, 'Kon uitgave niet aanmaken');
   }
 });
 
@@ -86,7 +84,7 @@ router.get('/', async (req, res) => {
     // Apply filter with UUID validation
     if (zzpId) {
       if (!UUID_REGEX.test(zzpId)) {
-        return res.status(400).json({ error: 'Invalid zzpId: must be a valid UUID' });
+        return sendError(res, 400, 'Ongeldige ZZP-ID');
       }
       sql += ` AND zzp_id = $${paramIndex++}`;
       params.push(zzpId);
@@ -98,7 +96,7 @@ router.get('/', async (req, res) => {
     res.json({ items: result.rows });
   } catch (error) {
     console.error('Error fetching expenses:', error);
-    res.status(500).json({ error: 'Failed to fetch expenses' });
+    sendError(res, 500, 'Kon uitgaven niet ophalen');
   }
 });
 
@@ -112,7 +110,7 @@ router.delete('/:id', async (req, res) => {
 
     // Validate UUID format
     if (!UUID_REGEX.test(id)) {
-      return res.status(400).json({ error: 'Invalid id: must be a valid UUID' });
+      return sendError(res, 400, 'Ongeldige ID');
     }
 
     const result = await query(
@@ -121,13 +119,13 @@ router.delete('/:id', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Expense not found' });
+      return sendError(res, 404, 'Uitgave niet gevonden');
     }
 
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting expense:', error);
-    res.status(500).json({ error: 'Failed to delete expense' });
+    sendError(res, 500, 'Kon uitgave niet verwijderen');
   }
 });
 

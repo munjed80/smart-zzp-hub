@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { sendError } from '../utils/error.js';
 import PDFDocument from 'pdfkit';
 import { query } from '../db/client.js';
 import { getWeekDateRange } from '../utils/week.js';
@@ -204,7 +205,7 @@ router.post('/generate', async (req, res) => {
 
     // Validate required fields
     if (!statementId) {
-      return res.status(400).json({ error: 'Missing required field: statementId' });
+      return sendError(res, 400, 'Overzicht-ID is verplicht');
     }
 
     // Check if an invoice already exists for this statement
@@ -275,7 +276,7 @@ router.post('/generate', async (req, res) => {
     );
 
     if (statementResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Statement not found' });
+      return sendError(res, 404, 'Overzicht niet gevonden');
     }
 
     const statement = statementResult.rows[0];
@@ -374,7 +375,7 @@ router.post('/generate', async (req, res) => {
     });
   } catch (error) {
     console.error('Error generating invoice:', error);
-    res.status(500).json({ error: 'Failed to generate invoice' });
+    sendError(res, 500, 'Kon factuur niet genereren');
   }
 });
 
@@ -394,13 +395,13 @@ router.get('/by-statement/:statementId', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Invoice not found for this statement' });
+      return sendError(res, 404, 'Factuur niet gevonden voor dit overzicht');
     }
 
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error fetching invoice:', error);
-    res.status(500).json({ error: 'Failed to fetch invoice' });
+    sendError(res, 500, 'Kon factuur niet ophalen');
   }
 });
 

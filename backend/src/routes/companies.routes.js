@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { query } from '../db/client.js';
+import { sendError } from '../utils/error.js';
 
 const router = Router();
 
@@ -15,7 +16,7 @@ router.get('/', async (req, res) => {
     res.json({ items: result.rows });
   } catch (error) {
     console.error('Error fetching companies:', error);
-    res.status(500).json({ error: 'Failed to fetch companies' });
+    sendError(res, 500, 'Kon bedrijven niet ophalen');
   }
 });
 
@@ -32,13 +33,13 @@ router.get('/:id', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Company not found' });
+      return sendError(res, 404, 'Bedrijf niet gevonden');
     }
 
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error fetching company:', error);
-    res.status(500).json({ error: 'Failed to fetch company' });
+    sendError(res, 500, 'Kon bedrijf niet ophalen');
   }
 });
 
@@ -53,7 +54,7 @@ router.post('/', async (req, res) => {
 
     // Validate required fields
     if (!name) {
-      return res.status(400).json({ error: 'Missing required field: name' });
+      return sendError(res, 400, 'Naam is verplicht');
     }
 
     const result = await query(
@@ -66,7 +67,7 @@ router.post('/', async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Error creating company:', error);
-    res.status(500).json({ error: 'Failed to create company' });
+    sendError(res, 500, 'Kon bedrijf niet aanmaken');
   }
 });
 
@@ -81,7 +82,7 @@ router.put('/:id', async (req, res) => {
 
     // Validate required fields
     if (!name) {
-      return res.status(400).json({ error: 'Missing required field: name' });
+      return sendError(res, 400, 'Naam is verplicht');
     }
 
     const result = await query(
@@ -99,7 +100,7 @@ router.put('/:id', async (req, res) => {
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error updating company:', error);
-    res.status(500).json({ error: 'Failed to update company' });
+    sendError(res, 500, 'Kon bedrijf niet bijwerken');
   }
 });
 
@@ -117,13 +118,13 @@ router.delete('/:id', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Company not found' });
+      return sendError(res, 404, 'Bedrijf niet gevonden');
     }
 
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting company:', error);
-    res.status(500).json({ error: 'Failed to delete company' });
+    sendError(res, 500, 'Kon bedrijf niet verwijderen');
   }
 });
 
