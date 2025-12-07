@@ -96,7 +96,7 @@ router.post('/', async (req, res) => {
       return sendError(res, 400, 'Bedrijf bestaat niet');
     }
 
-    res.status(500).json({ error: 'Failed to create ZZP user' });
+    sendError(res, 500, 'Kon ZZP gebruiker niet aanmaken');
   }
 });
 
@@ -142,7 +142,7 @@ router.put('/:id', async (req, res) => {
       return sendError(res, 400, 'Bedrijf bestaat niet');
     }
 
-    res.status(500).json({ error: 'Failed to update ZZP user' });
+    sendError(res, 500, 'Kon ZZP gebruiker niet bijwerken');
   }
 });
 
@@ -166,7 +166,7 @@ router.delete('/:id', async (req, res) => {
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting ZZP user:', error);
-    res.status(500).json({ error: 'Failed to delete ZZP user' });
+    sendError(res, 500, 'Kon ZZP gebruiker niet verwijderen');
   }
 });
 

@@ -272,9 +272,7 @@ router.patch('/:id', async (req, res) => {
 
     const validStatuses = ['open', 'approved', 'invoiced', 'paid'];
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        error: `Invalid status: must be one of ${validStatuses.join(', ')}`
-      });
+      return sendError(res, 400, 'Ongeldige status');
     }
 
     const result = await query(
