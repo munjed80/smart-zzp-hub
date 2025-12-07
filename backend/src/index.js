@@ -11,6 +11,7 @@ import statementsRouter from './routes/statements.routes.js';
 import invoicesRouter from './routes/invoices.routes.js';
 import expensesRouter from './routes/expenses.routes.js';
 import btwRouter from './routes/btw.routes.js';
+import aiAccountantRouter from './routes/aiAccountant.routes.js';
 
 dotenv.config();
 
@@ -53,6 +54,7 @@ app.use('/api/statements', statementsRouter);
 app.use('/api/invoices', invoicesRouter);
 app.use('/api/expenses', expensesRouter);
 app.use('/api/btw', btwRouter);
+app.use('/api/ai/accountant', aiAccountantRouter);
 
 // 404 handler
 app.use((req, res) => {
@@ -85,7 +87,8 @@ app.listen(PORT, () => {
     '/api/statements',
     '/api/invoices',
     '/api/expenses',
-    '/api/btw'
+    '/api/btw',
+    '/api/ai/accountant'
   ];
   console.log(`Mounted ${routes.length} route prefixes`);
   console.log('==============================');
