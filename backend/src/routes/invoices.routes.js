@@ -307,10 +307,9 @@ router.post('/generate', async (req, res) => {
     const btw = subtotal * BTW_RATE;
     const total = subtotal + btw;
 
-    // Generate invoice number using legal Dutch format
-    const currentYear = new Date().getFullYear();
-    const sequence = await getNextInvoiceSequence(currentYear);
-    const invoiceNumber = generateLegalInvoiceNumber(currentYear, sequence);
+    // Generate invoice number using legal Dutch format with statement's year
+    const sequence = await getNextInvoiceSequence(statement.year);
+    const invoiceNumber = generateLegalInvoiceNumber(statement.year, sequence);
 
     // Prepare data for PDF
     const pdfData = {

@@ -760,18 +760,6 @@ function StatementsPage() {
               </tbody>
             </table>
           </div>
-                          onClick={() => handleViewInvoice(statement.id)}
-                          disabled={generatingInvoice === statement.id}
-                        >
-                          {generatingInvoice === statement.id ? 'Bezig...' : 'Bekijk'}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         )}
       </div>
     </div>
