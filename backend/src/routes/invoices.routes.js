@@ -1,13 +1,11 @@
 import { Router } from 'express';
 import { sendError } from '../utils/error.js';
+import { calcLineTotal, calcTotals } from '../utils/calc.js';
 import PDFDocument from 'pdfkit';
 import { query } from '../db/client.js';
 import { getWeekDateRange } from '../utils/week.js';
 
 const router = Router();
-
-// BTW rate for Netherlands (21%)
-const BTW_RATE = 0.21;
 
 // PDF layout constants
 const DESCRIPTION_MAX_LENGTH = 40;
@@ -147,7 +145,7 @@ async function generateInvoicePDF(data) {
     for (const worklog of worklogs) {
       const quantity = parseFloat(worklog.quantity) || 0;
       const unitPrice = parseFloat(worklog.unit_price) || 0;
-      const lineTotal = quantity * unitPrice;
+      const lineTotal = calcLineTotal(quantity, unitPrice);
       const description = worklog.notes || `Werk ${formatDate(worklog.work_date)}`;
       
       doc.text(description.substring(0, DESCRIPTION_MAX_LENGTH), tableLeft, y);
@@ -299,14 +297,12 @@ router.post('/generate', async (req, res) => {
 
     const worklogs = worklogsResult.rows;
 
-    // Calculate amounts with validation for numeric values
-    const subtotal = worklogs.reduce((sum, w) => {
-      const quantity = parseFloat(w.quantity) || 0;
-      const unitPrice = parseFloat(w.unit_price) || 0;
-      return sum + (quantity * unitPrice);
-    }, 0);
-    const btw = subtotal * BTW_RATE;
-    const total = subtotal + btw;
+    // Calculate amounts using calc helpers
+    const worklogItems = worklogs.map(w => ({
+      quantity: parseFloat(w.quantity) || 0,
+      unitPrice: parseFloat(w.unit_price) || 0
+    }));
+    const { subtotal, btw, total } = calcTotals(worklogItems);
 
     // Generate invoice number using legal Dutch format with statement's year
     const sequence = await getNextInvoiceSequence(statement.year);
