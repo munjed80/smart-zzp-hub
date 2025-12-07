@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { query } from '../db/client.js';
+import { sendError } from '../utils/error.js';
 
 const router = Router();
 
@@ -36,33 +37,28 @@ router.post('/', async (req, res) => {
     if (unitPrice === undefined || unitPrice === null) missingFields.push('unitPrice');
 
     if (missingFields.length > 0) {
-      return res.status(400).json({
-        error: 'Missing required fields',
-        missingFields
-      });
+      return sendError(res, 400, 'Verplichte velden ontbreken');
     }
 
     // Validate UUID format
     if (!UUID_REGEX.test(companyId)) {
-      return res.status(400).json({ error: 'Invalid companyId: must be a valid UUID' });
+      return sendError(res, 400, 'Ongeldige bedrijf-ID');
     }
     if (!UUID_REGEX.test(zzpId)) {
-      return res.status(400).json({ error: 'Invalid zzpId: must be a valid UUID' });
+      return sendError(res, 400, 'Ongeldige ZZP-ID');
     }
 
     // Validate tariff type
     if (!VALID_TARIFF_TYPES.includes(tariffType)) {
-      return res.status(400).json({
-        error: `Invalid tariffType: must be one of ${VALID_TARIFF_TYPES.join(', ')}`
-      });
+      return sendError(res, 400, 'Ongeldig tarieftype');
     }
 
     // Validate numeric fields
     if (typeof quantity !== 'number' || isNaN(quantity)) {
-      return res.status(400).json({ error: 'Invalid quantity: must be a number' });
+      return sendError(res, 400, 'Ongeldige hoeveelheid');
     }
     if (typeof unitPrice !== 'number' || isNaN(unitPrice)) {
-      return res.status(400).json({ error: 'Invalid unitPrice: must be a number' });
+      return sendError(res, 400, 'Ongeldige eenheidsprijs');
     }
 
     // Insert into database
@@ -80,14 +76,14 @@ router.post('/', async (req, res) => {
     // Handle foreign key violations
     if (error.code === '23503') {
       if (error.constraint?.includes('company')) {
-        return res.status(400).json({ error: 'Invalid companyId: company does not exist' });
+        return sendError(res, 400, 'Bedrijf bestaat niet');
       }
       if (error.constraint?.includes('zzp')) {
-        return res.status(400).json({ error: 'Invalid zzpId: ZZP user does not exist' });
+        return sendError(res, 400, 'ZZP gebruiker bestaat niet');
       }
     }
 
-    res.status(500).json({ error: 'Failed to create worklog' });
+    sendError(res, 500, 'Kon werklog niet aanmaken');
   }
 });
 
@@ -135,7 +131,7 @@ router.get('/', async (req, res) => {
     res.json({ items: result.rows });
   } catch (error) {
     console.error('Error fetching worklogs:', error);
-    res.status(500).json({ error: 'Failed to fetch worklogs' });
+    sendError(res, 500, 'Kon werklogs niet ophalen');
   }
 });
 
@@ -154,13 +150,13 @@ router.get('/:id', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Worklog not found' });
+      return sendError(res, 404, 'Werklog niet gevonden');
     }
 
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error fetching worklog:', error);
-    res.status(500).json({ error: 'Failed to fetch worklog' });
+    sendError(res, 500, 'Kon werklog niet ophalen');
   }
 });
 
@@ -178,13 +174,13 @@ router.delete('/:id', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Worklog not found' });
+      return sendError(res, 404, 'Werklog niet gevonden');
     }
 
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting worklog:', error);
-    res.status(500).json({ error: 'Failed to delete worklog' });
+    sendError(res, 500, 'Kon werklog niet verwijderen');
   }
 });
 

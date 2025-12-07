@@ -148,7 +148,24 @@ function DashboardPage() {
     <div className="dashboard-page">
       <Header />
       <div className="container">
-        <h1 className="page-title">Dashboard</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h1 className="page-title">Dashboard</h1>
+          <button
+            onClick={() => window.location.href = '/ai-boekhouder'}
+            style={{
+              padding: '10px 20px',
+              fontSize: '14px',
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            🤖 AI Boekhouder
+          </button>
+        </div>
 
         {/* Summary card */}
         <div className="summary-card">

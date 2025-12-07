@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query } from '../db/client.js';
 import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/jwt.js';
+import { sendError } from '../utils/error.js';
 
 const router = Router();
 
@@ -16,11 +17,11 @@ router.post('/register', async (req, res) => {
 
     // Validate required fields
     if (!email || !password) {
-      return res.status(400).json({ error: 'E-mail en wachtwoord zijn verplicht' });
+      return sendError(res, 400, 'E-mail en wachtwoord zijn verplicht');
     }
 
     if (!['zzp', 'company'].includes(userType)) {
-      return res.status(400).json({ error: 'Ongeldig gebruikerstype' });
+      return sendError(res, 400, 'Ongeldig gebruikerstype');
     }
 
     // Check if email already exists
@@ -30,7 +31,7 @@ router.post('/register', async (req, res) => {
     );
 
     if (existingUser.rows.length > 0) {
-      return res.status(400).json({ error: 'E-mailadres is al in gebruik' });
+      return sendError(res, 400, 'E-mailadres is al in gebruik');
     }
 
     // Hash password
@@ -101,7 +102,7 @@ router.post('/register', async (req, res) => {
     });
   } catch (error) {
     console.error('Error registering user:', error);
-    res.status(500).json({ error: 'Registratie mislukt' });
+    sendError(res, 500, 'Registratie mislukt');
   }
 });
 
@@ -115,7 +116,7 @@ router.post('/login', async (req, res) => {
 
     // Validate required fields
     if (!email || !password) {
-      return res.status(400).json({ error: 'E-mail en wachtwoord zijn verplicht' });
+      return sendError(res, 400, 'E-mail en wachtwoord zijn verplicht');
     }
 
     // Find user by email
@@ -125,7 +126,7 @@ router.post('/login', async (req, res) => {
     );
 
     if (userResult.rows.length === 0) {
-      return res.status(401).json({ error: 'Ongeldige inloggegevens' });
+      return sendError(res, 401, 'Ongeldige inloggegevens');
     }
 
     const user = userResult.rows[0];
@@ -133,7 +134,7 @@ router.post('/login', async (req, res) => {
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
-      return res.status(401).json({ error: 'Ongeldige inloggegevens' });
+      return sendError(res, 401, 'Ongeldige inloggegevens');
     }
 
     // Get profile ID based on user type
@@ -180,7 +181,7 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Error logging in:', error);
-    res.status(500).json({ error: 'Inloggen mislukt' });
+    sendError(res, 500, 'Inloggen mislukt');
   }
 });
 
@@ -192,7 +193,7 @@ router.get('/me', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Geen authenticatie token' });
+      return sendError(res, 401, 'Geen authenticatie token');
     }
 
     const token = authHeader.substring(7);
@@ -207,7 +208,7 @@ router.get('/me', async (req, res) => {
       );
 
       if (userResult.rows.length === 0) {
-        return res.status(401).json({ error: 'Gebruiker niet gevonden' });
+        return sendError(res, 401, 'Gebruiker niet gevonden');
       }
 
       const user = userResult.rows[0];
@@ -220,11 +221,11 @@ router.get('/me', async (req, res) => {
         profileId: decoded.profileId
       });
     } catch (jwtError) {
-      return res.status(401).json({ error: 'Ongeldig token' });
+      return sendError(res, 401, 'Ongeldig token');
     }
   } catch (error) {
     console.error('Error getting user info:', error);
-    res.status(500).json({ error: 'Kon gebruiker niet ophalen' });
+    sendError(res, 500, 'Kon gebruiker niet ophalen');
   }
 });
 

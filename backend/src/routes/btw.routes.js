@@ -1,13 +1,12 @@
 import { Router } from 'express';
+import { sendError } from '../utils/error.js';
+import { calcLineTotal, calcBTW } from '../utils/calc.js';
 import { query } from '../db/client.js';
 
 const router = Router();
 
 // UUID regex pattern for validation
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-// BTW rate in the Netherlands
-const BTW_RATE = 0.21;
 
 /**
  * Calculate date range based on period type
@@ -74,26 +73,26 @@ router.get('/overview', async (req, res) => {
 
     // Validate required fields
     if (!companyId) {
-      return res.status(400).json({ error: 'Missing required field: companyId' });
+      return sendError(res, 400, 'Bedrijf-ID is verplicht');
     }
 
     if (!UUID_REGEX.test(companyId)) {
-      return res.status(400).json({ error: 'Invalid companyId: must be a valid UUID' });
+      return sendError(res, 400, 'Ongeldige bedrijf-ID');
     }
 
     if (!period || !['month', 'quarter', 'year'].includes(period)) {
-      return res.status(400).json({ error: 'Invalid period: must be month, quarter, or year' });
+      return sendError(res, 400, 'Ongeldige periode');
     }
 
     const yearNum = parseInt(year);
     if (!year || isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
-      return res.status(400).json({ error: 'Invalid year: must be a valid year between 2000 and 2100' });
+      return sendError(res, 400, 'Ongeldig jaar');
     }
 
     // Calculate date range
     const dateRange = calculateDateRange(period, yearNum, value);
     if (dateRange.error) {
-      return res.status(400).json({ error: dateRange.error });
+      return sendError(res, 400, 'Ongeldige datumbereik');
     }
     const { startDate, endDate } = dateRange;
 
@@ -107,14 +106,14 @@ router.get('/overview', async (req, res) => {
       [companyId, startDate, endDate]
     );
 
-    const subtotal = parseFloat(result.rows[0].total) || 0;
-    const btw = subtotal * BTW_RATE;
-    const net = subtotal + btw;
+    const subtotal = Number((parseFloat(result.rows[0].total) || 0).toFixed(2));
+    const btw = calcBTW(subtotal);
+    const net = Number((subtotal + btw).toFixed(2));
 
     res.json({
-      subtotal: Math.round(subtotal * 100) / 100,
-      btw: Math.round(btw * 100) / 100,
-      net: Math.round(net * 100) / 100,
+      subtotal,
+      btw,
+      net,
       period,
       year: yearNum,
       value: period === 'year' ? null : parseInt(value),
@@ -123,7 +122,7 @@ router.get('/overview', async (req, res) => {
     });
   } catch (error) {
     console.error('Error calculating BTW overview:', error);
-    res.status(500).json({ error: 'Failed to calculate BTW overview' });
+    sendError(res, 500, 'Kon BTW overzicht niet berekenen');
   }
 });
 
@@ -144,41 +143,41 @@ router.get('/export', async (req, res) => {
 
     // Validate scope
     if (!scope || !['zzp', 'company'].includes(scope)) {
-      return res.status(400).json({ error: 'Invalid scope: must be zzp or company' });
+      return sendError(res, 400, 'Ongeldige scope');
     }
 
     // Validate ID based on scope
     if (scope === 'zzp') {
       if (!zzpId) {
-        return res.status(400).json({ error: 'Missing required field: zzpId (required for scope=zzp)' });
+        return sendError(res, 400, 'ZZP-ID is verplicht');
       }
       if (!UUID_REGEX.test(zzpId)) {
-        return res.status(400).json({ error: 'Invalid zzpId: must be a valid UUID' });
+        return sendError(res, 400, 'Ongeldige ZZP-ID');
       }
     } else if (scope === 'company') {
       if (!companyId) {
-        return res.status(400).json({ error: 'Missing required field: companyId (required for scope=company)' });
+        return sendError(res, 400, 'Bedrijf-ID is verplicht');
       }
       if (!UUID_REGEX.test(companyId)) {
-        return res.status(400).json({ error: 'Invalid companyId: must be a valid UUID' });
+        return sendError(res, 400, 'Ongeldige bedrijf-ID');
       }
     }
 
     // Validate period
     if (!period || !['month', 'quarter', 'year'].includes(period)) {
-      return res.status(400).json({ error: 'Invalid period: must be month, quarter, or year' });
+      return sendError(res, 400, 'Ongeldige periode');
     }
 
     // Validate year
     const yearNum = parseInt(year);
     if (!year || isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
-      return res.status(400).json({ error: 'Invalid year: must be a valid year between 2000 and 2100' });
+      return sendError(res, 400, 'Ongeldig jaar');
     }
 
     // Calculate date range
     const dateRange = calculateDateRange(period, yearNum, value);
     if (dateRange.error) {
-      return res.status(400).json({ error: dateRange.error });
+      return sendError(res, 400, 'Ongeldige datumbereik');
     }
     const { startDate, endDate } = dateRange;
 
@@ -217,15 +216,15 @@ router.get('/export', async (req, res) => {
     for (const row of worklogsResult.rows) {
       const quantity = parseFloat(row.quantity) || 0;
       const unitPrice = parseFloat(row.unit_price) || 0;
-      const lineTotal = quantity * unitPrice;
-      const btwAmount = lineTotal * BTW_RATE;
+      const lineTotal = calcLineTotal(quantity, unitPrice);
+      const btwAmount = calcBTW(lineTotal);
       rows.push({
         date: row.work_date,
         type: row.tariff_type,
         quantity: quantity,
         unitPrice: unitPrice,
-        lineTotal: Math.round(lineTotal * 100) / 100,
-        btwAmount: Math.round(btwAmount * 100) / 100,
+        lineTotal,
+        btwAmount,
         category: '',
         source: 'worklog'
       });
@@ -245,15 +244,15 @@ router.get('/export', async (req, res) => {
 
       // Add expenses to rows (positive values representing deductible expenses)
       for (const row of expensesResult.rows) {
-        const amount = parseFloat(row.amount) || 0;
-        const btwAmount = amount * BTW_RATE;
+        const amount = Number((parseFloat(row.amount) || 0).toFixed(2));
+        const btwAmount = calcBTW(amount);
         rows.push({
           date: row.expense_date,
           type: 'expense',
           quantity: 1,
           unitPrice: amount,
           lineTotal: amount,
-          btwAmount: Math.round(btwAmount * 100) / 100,
+          btwAmount,
           category: row.category || '',
           source: 'expense'
         });
@@ -286,7 +285,7 @@ router.get('/export', async (req, res) => {
     res.send(csvContent);
   } catch (error) {
     console.error('Error exporting BTW data:', error);
-    res.status(500).json({ error: 'Failed to export BTW data' });
+    sendError(res, 500, 'Kon BTW data niet exporteren');
   }
 });
 
@@ -307,41 +306,41 @@ router.get('/transactions', async (req, res) => {
 
     // Validate scope
     if (!scope || !['zzp', 'company'].includes(scope)) {
-      return res.status(400).json({ error: 'Invalid scope: must be zzp or company' });
+      return sendError(res, 400, 'Ongeldige scope');
     }
 
     // Validate ID based on scope
     if (scope === 'zzp') {
       if (!zzpId) {
-        return res.status(400).json({ error: 'Missing required field: zzpId (required for scope=zzp)' });
+        return sendError(res, 400, 'ZZP-ID is verplicht');
       }
       if (!UUID_REGEX.test(zzpId)) {
-        return res.status(400).json({ error: 'Invalid zzpId: must be a valid UUID' });
+        return sendError(res, 400, 'Ongeldige ZZP-ID');
       }
     } else if (scope === 'company') {
       if (!companyId) {
-        return res.status(400).json({ error: 'Missing required field: companyId (required for scope=company)' });
+        return sendError(res, 400, 'Bedrijf-ID is verplicht');
       }
       if (!UUID_REGEX.test(companyId)) {
-        return res.status(400).json({ error: 'Invalid companyId: must be a valid UUID' });
+        return sendError(res, 400, 'Ongeldige bedrijf-ID');
       }
     }
 
     // Validate period
     if (!period || !['month', 'quarter', 'year'].includes(period)) {
-      return res.status(400).json({ error: 'Invalid period: must be month, quarter, or year' });
+      return sendError(res, 400, 'Ongeldige periode');
     }
 
     // Validate year
     const yearNum = parseInt(year);
     if (!year || isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
-      return res.status(400).json({ error: 'Invalid year: must be a valid year between 2000 and 2100' });
+      return sendError(res, 400, 'Ongeldig jaar');
     }
 
     // Calculate date range
     const dateRange = calculateDateRange(period, yearNum, value);
     if (dateRange.error) {
-      return res.status(400).json({ error: dateRange.error });
+      return sendError(res, 400, 'Ongeldige datumbereik');
     }
     const { startDate, endDate } = dateRange;
 
@@ -380,8 +379,8 @@ router.get('/transactions', async (req, res) => {
     for (const row of worklogsResult.rows) {
       const quantity = parseFloat(row.quantity) || 0;
       const unitPrice = parseFloat(row.unit_price) || 0;
-      const lineTotal = quantity * unitPrice;
-      const btwAmount = lineTotal * BTW_RATE;
+      const lineTotal = calcLineTotal(quantity, unitPrice);
+      const btwAmount = calcBTW(lineTotal);
       transactions.push({
         id: row.id,
         date: row.work_date,
@@ -390,8 +389,8 @@ router.get('/transactions', async (req, res) => {
         category: row.tariff_type,
         quantity: quantity,
         unitPrice: unitPrice,
-        amount: Math.round(lineTotal * 100) / 100,
-        btwAmount: Math.round(btwAmount * 100) / 100,
+        amount: lineTotal,
+        btwAmount,
         notes: row.notes || '',
         source: 'worklog'
       });
@@ -411,8 +410,8 @@ router.get('/transactions', async (req, res) => {
 
       // Add expenses to transactions
       for (const row of expensesResult.rows) {
-        const amount = parseFloat(row.amount) || 0;
-        const btwAmount = amount * BTW_RATE;
+        const amount = Number((parseFloat(row.amount) || 0).toFixed(2));
+        const btwAmount = calcBTW(amount);
         transactions.push({
           id: row.id,
           date: row.expense_date,
@@ -421,8 +420,8 @@ router.get('/transactions', async (req, res) => {
           category: row.category || 'Overig',
           quantity: 1,
           unitPrice: amount,
-          amount: Math.round(amount * 100) / 100,
-          btwAmount: Math.round(btwAmount * 100) / 100,
+          amount,
+          btwAmount,
           notes: row.notes || '',
           source: 'expense'
         });
@@ -462,17 +461,17 @@ router.get('/transactions', async (req, res) => {
     }
 
     // Round totals
-    totalIncome = Math.round(totalIncome * 100) / 100;
-    totalExpenses = Math.round(totalExpenses * 100) / 100;
-    btwReceived = Math.round(btwReceived * 100) / 100;
-    btwPaid = Math.round(btwPaid * 100) / 100;
+    totalIncome = Number(totalIncome.toFixed(2));
+    totalExpenses = Number(totalExpenses.toFixed(2));
+    btwReceived = Number(btwReceived.toFixed(2));
+    btwPaid = Number(btwPaid.toFixed(2));
 
     // Round category totals
     for (const cat of Object.keys(categoryTotals)) {
-      categoryTotals[cat].income = Math.round(categoryTotals[cat].income * 100) / 100;
-      categoryTotals[cat].expenses = Math.round(categoryTotals[cat].expenses * 100) / 100;
-      categoryTotals[cat].btwReceived = Math.round(categoryTotals[cat].btwReceived * 100) / 100;
-      categoryTotals[cat].btwPaid = Math.round(categoryTotals[cat].btwPaid * 100) / 100;
+      categoryTotals[cat].income = Number(categoryTotals[cat].income.toFixed(2));
+      categoryTotals[cat].expenses = Number(categoryTotals[cat].expenses.toFixed(2));
+      categoryTotals[cat].btwReceived = Number(categoryTotals[cat].btwReceived.toFixed(2));
+      categoryTotals[cat].btwPaid = Number(categoryTotals[cat].btwPaid.toFixed(2));
     }
 
     res.json({
@@ -480,10 +479,10 @@ router.get('/transactions', async (req, res) => {
       summary: {
         totalIncome,
         totalExpenses,
-        netIncome: Math.round((totalIncome - totalExpenses) * 100) / 100,
+        netIncome: Number((totalIncome - totalExpenses).toFixed(2)),
         btwReceived,
         btwPaid,
-        btwBalance: Math.round((btwReceived - btwPaid) * 100) / 100
+        btwBalance: Number((btwReceived - btwPaid).toFixed(2))
       },
       categoryTotals,
       period,
@@ -494,7 +493,7 @@ router.get('/transactions', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching BTW transactions:', error);
-    res.status(500).json({ error: 'Failed to fetch BTW transactions' });
+    sendError(res, 500, 'Kon BTW transacties niet ophalen');
   }
 });
 

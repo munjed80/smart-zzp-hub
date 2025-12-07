@@ -12,6 +12,7 @@ Smart ZZP Hub is a comprehensive invoicing and administration platform for ZZP (
 - **BTW Calculation**: VAT calculation tools for both ZZP users and companies
 - **Expense Tracking**: ZZP users track business expenses for tax deductions
 - **Income Dashboard**: Quick overview of income, expenses, and net profit for ZZP users
+- **AI Boekhouder (Analytics Engine)**: Comprehensive financial analysis with health scoring, volatility tracking, and personalized recommendations
 - **Dual User Types**: Separate workflows for ZZP freelancers and companies
 
 ## Technology Stack
@@ -71,12 +72,60 @@ Smart ZZP Hub is a comprehensive invoicing and administration platform for ZZP (
    - ZZP profile management
    - User-company relationships
 
+9. **aiAccountant.routes.js** - AI Boekhouder (Analytics Engine)
+   - Comprehensive financial analysis endpoint
+   - Monthly income/expense aggregation (up to 24 months)
+   - Rolling averages (3m, 6m, 12m)
+   - Volatility analysis (income stability)
+   - Financial health scoring (0-100)
+   - BTW calculations per quarter
+   - Smart observations and recommendations
+   - Question-aware insights
+
 ### Utilities
 
 - **db/client.js** - PostgreSQL connection management
 - **utils/week.js** - ISO week calculation utilities
+- **utils/error.js** - Standardized error response helper
+- **utils/calc.js** - Currency and BTW calculation helpers
 - **middleware/auth.js** - JWT authentication middleware
 - **config/jwt.js** - JWT configuration
+
+## AI Boekhouder (Analytics Engine)
+
+The AI Boekhouder is a sophisticated financial analysis system that provides ZZP users with deep insights into their business performance. Unlike simple calculators, it analyzes historical patterns, identifies trends, and provides context-aware recommendations.
+
+### Key Capabilities
+
+**Data Analysis:**
+- Aggregates up to 24 months of financial history
+- Calculates monthly income, expenses, and net profit
+- Identifies best and worst performing months
+- Tracks income volatility using standard deviation
+
+**Financial Health Scoring:**
+- Composite score (0-100) based on multiple factors:
+  - Profit margin
+  - Income stability (volatility)
+  - Expense ratio
+  - Growth trend
+- Classification: "gezond" (healthy), "aandacht nodig" (attention needed), "risicovol" (risky)
+
+**Smart Insights:**
+- Observations: What is happening in your business
+- Recommendations: What actions to take
+- BTW planning: Quarterly tax obligations
+- Buffer calculations: Emergency fund recommendations
+- Question-aware responses: Adapts to user queries about pension, buffer, auto, etc.
+
+**Analytics Provided:**
+- Rolling averages (3-month, 6-month, 12-month)
+- Income volatility measurement
+- Profit margin percentage
+- BTW breakdown per quarter
+- Monthly trend visualization data
+- Top 3 best months
+- Worst 3 months (risk indicators)
 
 ## Frontend Pages
 

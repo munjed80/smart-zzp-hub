@@ -1,12 +1,11 @@
 import { Router } from 'express';
+import { sendError } from '../utils/error.js';
+import { calcLineTotal, calcTotals } from '../utils/calc.js';
 import PDFDocument from 'pdfkit';
 import { query } from '../db/client.js';
 import { getWeekDateRange } from '../utils/week.js';
 
 const router = Router();
-
-// BTW rate for Netherlands (21%)
-const BTW_RATE = 0.21;
 
 // PDF layout constants
 const DESCRIPTION_MAX_LENGTH = 40;
@@ -146,7 +145,7 @@ async function generateInvoicePDF(data) {
     for (const worklog of worklogs) {
       const quantity = parseFloat(worklog.quantity) || 0;
       const unitPrice = parseFloat(worklog.unit_price) || 0;
-      const lineTotal = quantity * unitPrice;
+      const lineTotal = calcLineTotal(quantity, unitPrice);
       const description = worklog.notes || `Werk ${formatDate(worklog.work_date)}`;
       
       doc.text(description.substring(0, DESCRIPTION_MAX_LENGTH), tableLeft, y);
@@ -204,7 +203,7 @@ router.post('/generate', async (req, res) => {
 
     // Validate required fields
     if (!statementId) {
-      return res.status(400).json({ error: 'Missing required field: statementId' });
+      return sendError(res, 400, 'Overzicht-ID is verplicht');
     }
 
     // Check if an invoice already exists for this statement
@@ -275,7 +274,7 @@ router.post('/generate', async (req, res) => {
     );
 
     if (statementResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Statement not found' });
+      return sendError(res, 404, 'Overzicht niet gevonden');
     }
 
     const statement = statementResult.rows[0];
@@ -298,14 +297,12 @@ router.post('/generate', async (req, res) => {
 
     const worklogs = worklogsResult.rows;
 
-    // Calculate amounts with validation for numeric values
-    const subtotal = worklogs.reduce((sum, w) => {
-      const quantity = parseFloat(w.quantity) || 0;
-      const unitPrice = parseFloat(w.unit_price) || 0;
-      return sum + (quantity * unitPrice);
-    }, 0);
-    const btw = subtotal * BTW_RATE;
-    const total = subtotal + btw;
+    // Calculate amounts using calc helpers
+    const worklogItems = worklogs.map(w => ({
+      quantity: parseFloat(w.quantity) || 0,
+      unitPrice: parseFloat(w.unit_price) || 0
+    }));
+    const { subtotal, btw, total } = calcTotals(worklogItems);
 
     // Generate invoice number using legal Dutch format with statement's year
     const sequence = await getNextInvoiceSequence(statement.year);
@@ -374,7 +371,7 @@ router.post('/generate', async (req, res) => {
     });
   } catch (error) {
     console.error('Error generating invoice:', error);
-    res.status(500).json({ error: 'Failed to generate invoice' });
+    sendError(res, 500, 'Kon factuur niet genereren');
   }
 });
 
@@ -394,13 +391,13 @@ router.get('/by-statement/:statementId', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Invoice not found for this statement' });
+      return sendError(res, 404, 'Factuur niet gevonden voor dit overzicht');
     }
 
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error fetching invoice:', error);
-    res.status(500).json({ error: 'Failed to fetch invoice' });
+    sendError(res, 500, 'Kon factuur niet ophalen');
   }
 });
 
