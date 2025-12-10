@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart ZZP Hub - Statements Preview</title>
+    <link rel="stylesheet" href="frontend/src/pages/statements/styles.css">
+    <link rel="stylesheet" href="frontend/src/components/Header.css">
+</head>
+<body>
+    <div class="statements-page">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-container">
+                <h1 class="header-title">Smart ZZP Hub - Overzichten</h1>
+                <button class="btn btn-secondary">Uitloggen</button>
+            </div>
+        </header>
+        
+        <div class="container">
+            <h1 class="page-title">Overzichten</h1>
+            
+            <!-- BTW Summary -->
+            <div class="btw-summary">
+                <h2 class="btw-summary-title">BTW Samenvatting</h2>
+                <div class="btw-summary-rows">
+                    <div class="btw-summary-row">
+                        <span class="btw-label">BTW over inkomsten:</span>
+                        <span class="btw-amount">€ 2.100,00</span>
+                    </div>
+                    <div class="btw-summary-row">
+                        <span class="btw-label">BTW over uitgaven:</span>
+                        <span class="btw-amount">€ 105,00</span>
+                    </div>
+                    <div class="btw-summary-row btw-balance-row">
+                        <span class="btw-label">BTW saldo:</span>
+                        <span class="btw-amount btw-balance">€ 1.995,00</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statements Table -->
+            <div class="table-container">
+                <table class="statements-table">
+                    <thead>
+                        <tr>
+                            <th>Week</th>
+                            <th>Bedrag</th>
+                            <th>Status</th>
+                            <th>Factuurnr</th>
+                            <th>Actie</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="week-label">Week 48 2024</span></td>
+                            <td><span class="amount">€ 2.500,00</span></td>
+                            <td><span class="status-badge status-paid">Betaald</span></td>
+                            <td><span class="invoice-number">FACT-2024-007</span></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">Bekijk PDF</button>
+                                    <button class="btn btn-secondary">Download</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span class="week-label">Week 47 2024</span></td>
+                            <td><span class="amount">€ 2.400,00</span></td>
+                            <td><span class="status-badge status-invoiced">Gefactureerd</span></td>
+                            <td><span class="invoice-number">FACT-2024-006</span></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">Bekijk PDF</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span class="week-label">Week 46 2024</span></td>
+                            <td><span class="amount">€ 2.350,00</span></td>
+                            <td><span class="status-badge status-open">Open</span></td>
+                            <td><span class="invoice-number invoice-number-empty">-</span></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary">Maak factuur</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
