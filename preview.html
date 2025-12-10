@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart ZZP Hub - Preview Gallery</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+        .status {
+            background: #48bb78;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .section {
+            margin-bottom: 50px;
+        }
+        .section h2 {
+            color: #2d3748;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .screenshot {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .screenshot:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+        }
+        .screenshot h3 {
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+        .screenshot p {
+            color: #718096;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        .screenshot img {
+            width: 100%;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+        }
+        .info-box {
+            background: #edf2f7;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 4px;
+        }
+        .info-box h3 {
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        .info-box ul {
+            margin-left: 20px;
+            color: #4a5568;
+        }
+        .info-box li {
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+        .footer {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 2px solid #e2e8f0;
+            color: #718096;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Smart ZZP Hub</h1>
+        <div class="subtitle">Complete Preview Gallery - Alle Schermen</div>
+        
+        <div class="status">
+            ✅ Applicatie is 100% klaar voor VPS deployment!
+        </div>
+
+        <div class="info-box">
+            <h3>📋 Deployment Readiness Status</h3>
+            <ul>
+                <li>✅ <strong>Backend API:</strong> Volledig functioneel met 10 routes (auth, worklogs, statements, invoices, expenses, BTW, AI accountant)</li>
+                <li>✅ <strong>Frontend UI:</strong> Compleet met 9 pagina's in Nederlands</li>
+                <li>✅ <strong>Docker:</strong> Dockerfile + docker-compose.yml met PostgreSQL en nginx</li>
+                <li>✅ <strong>Process Management:</strong> PM2 ecosystem.config.js en systemd service</li>
+                <li>✅ <strong>Reverse Proxy:</strong> Nginx configuratie met security headers en rate limiting</li>
+                <li>✅ <strong>Database:</strong> PostgreSQL schema, migraties en setup scripts</li>
+                <li>✅ <strong>Documentation:</strong> Complete VPS deployment guide</li>
+                <li>✅ <strong>Security:</strong> Rate limiting, JWT auth, input validation, geen hardcoded secrets</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🧑‍💼 ZZP Gebruiker Portal</h2>
+            
+            <div class="grid">
+                <div class="screenshot">
+                    <h3>1. Login Pagina</h3>
+                    <p>Het startscherm waar gebruikers kunnen inloggen of registreren. Ondersteunt zowel ZZP als bedrijfsaccounts met JWT authenticatie.</p>
+                    <img src="docs/previews/login.png" alt="Login">
+                </div>
+
+                <div class="screenshot">
+                    <h3>2. Dashboard</h3>
+                    <p>Overzichtelijk dashboard met financiële KPI's: totale omzet, uitgaven en netto winst. Toont recente betaalde overzichten en laatste uitgaven in één oogopslag.</p>
+                    <img src="docs/previews/dashboard.png" alt="Dashboard">
+                </div>
+
+                <div class="screenshot">
+                    <h3>3. Overzichten & Facturen</h3>
+                    <p>ZZP-gebruikers bekijken weekoverzichten, genereren PDF facturen met legale nummering (FACT-YYYY-NNNN), en beheren zakelijke uitgaven. Inclusief BTW-samenvatting.</p>
+                    <img src="docs/previews/statements.png" alt="Statements">
+                </div>
+
+                <div class="screenshot">
+                    <h3>4. BTW Overzicht</h3>
+                    <p>Gedetailleerd BTW-overzicht per periode (maand/kwartaal/jaar) met transactielijst, grafieken en CSV export. Berekent BTW over inkomsten en voorbelasting over uitgaven.</p>
+                    <img src="docs/previews/btw.png" alt="BTW">
+                </div>
+
+                <div class="screenshot">
+                    <h3>5. AI Boekhouder 🤖</h3>
+                    <p>Geavanceerd analytics dashboard met financiële gezondheid score (0-100), volatiliteitsanalyse, rolling averages, en gepersonaliseerde aanbevelingen. Analyseert tot 24 maanden historie.</p>
+                    <img src="docs/previews/ai-boekhouder.png" alt="AI Boekhouder">
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🏢 Bedrijf Portal</h2>
+            
+            <div class="grid">
+                <div class="screenshot">
+                    <h3>6. Werkuren Registratie</h3>
+                    <p>Bedrijven registreren werkuren, stops, locaties, punten en andere werkzaamheden voor hun ZZP-medewerkers met datum, type, hoeveelheid en tarief.</p>
+                    <img src="docs/previews/company-worklogs.png" alt="Company Worklogs">
+                </div>
+
+                <div class="screenshot">
+                    <h3>7. Overzichten Genereren</h3>
+                    <p>Genereer weekoverzichten per ZZP-medewerker op basis van geregistreerde werkuren. Volg de status: open → gefactureerd → betaald.</p>
+                    <img src="docs/previews/company-statements.png" alt="Company Statements">
+                </div>
+
+                <div class="screenshot">
+                    <h3>8. BTW Bedrijfsoverzicht</h3>
+                    <p>BTW-overzicht voor bedrijven met inkomsten-analyse en BTW-verplichtingen. Inclusief periode selectie en transactie details.</p>
+                    <img src="docs/previews/company-btw.png" alt="Company BTW">
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h3>🔧 Technische Stack</h3>
+            <ul>
+                <li><strong>Backend:</strong> Node.js 18+ + Express + PostgreSQL 12+</li>
+                <li><strong>Frontend:</strong> React/JSX met Next.js routing</li>
+                <li><strong>Authentication:</strong> JWT tokens met bcrypt password hashing</li>
+                <li><strong>PDF Generation:</strong> PDFKit voor legale facturen met sequentiële nummering</li>
+                <li><strong>Rate Limiting:</strong> 100 requests per 15 minuten per IP</li>
+                <li><strong>Database:</strong> PostgreSQL met volledige schema, indexes en migraties</li>
+                <li><strong>UI Language:</strong> Nederlands (alle teksten, labels, berichten)</li>
+                <li><strong>Code Language:</strong> Engels (alle code, variabelen, comments)</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <h3>🚀 Deployment Opties (4 methodes beschikbaar)</h3>
+            <ul>
+                <li><strong>1. Docker Compose:</strong> Snelste setup - inclusief PostgreSQL, backend en nginx in één commando</li>
+                <li><strong>2. PM2:</strong> Production process management met cluster mode, auto-restart en monitoring (aanbevolen)</li>
+                <li><strong>3. systemd:</strong> Traditionele Linux service met security hardening</li>
+                <li><strong>4. Manual:</strong> Direct met Node.js voor development</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <h3>📦 Wat is nieuw toegevoegd voor VPS deployment</h3>
+            <ul>
+                <li>✨ <strong>Dockerfile:</strong> Multi-stage build met security best practices</li>
+                <li>✨ <strong>docker-compose.yml:</strong> Complete stack met PostgreSQL, backend en nginx</li>
+                <li>✨ <strong>nginx.conf:</strong> Reverse proxy met security headers, rate limiting en SSL support</li>
+                <li>✨ <strong>ecosystem.config.js:</strong> PM2 configuratie met auto-restart en log management</li>
+                <li>✨ <strong>smart-zzp-hub.service:</strong> systemd service met security hardening</li>
+                <li>✨ <strong>.env.production:</strong> Template met alle benodigde environment variabelen</li>
+                <li>✨ <strong>scripts/deploy.sh:</strong> Geautomatiseerd deployment script</li>
+                <li>✨ <strong>scripts/setup-database.sh:</strong> Database initialisatie script</li>
+                <li>✨ <strong>docs/VPS_DEPLOYMENT_GUIDE.md:</strong> Complete stap-voor-stap deployment guide</li>
+                <li>✨ <strong>db/migrations/:</strong> Database migratie bestanden</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px;">🎉 Smart ZZP Hub - 100% Klaar voor Productie Deployment</p>
+            <p>Zie <strong>docs/VPS_DEPLOYMENT_GUIDE.md</strong> voor complete instructies</p>
+            <p style="margin-top: 10px;">Backend API: <a href="http://localhost:4000/api/health" target="_blank">http://localhost:4000/api/health</a></p>
+        </div>
+    </div>
+</body>
+</html>

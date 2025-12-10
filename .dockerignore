@@ -1,0 +1,51 @@
+# Git files
+.git
+.gitignore
+
+# Documentation
+README.md
+docs/
+
+# Environment files (will be provided at runtime)
+.env
+.env.*
+!.env.example
+
+# Node modules (will be installed in container)
+node_modules/
+npm-debug.log*
+
+# Logs
+logs/
+*.log
+
+# Frontend (not needed in backend container)
+frontend/
+
+# Database files
+db/
+*.sql
+
+# Scripts
+scripts/
+
+# Deployment configs
+docker-compose.yml
+nginx.conf
+ecosystem.config.js
+*.service
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+test/
+*.test.js
+coverage/

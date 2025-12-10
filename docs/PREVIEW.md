@@ -44,6 +44,16 @@ Een overzichtelijk dashboard met financiële statistieken: totale inkomsten, uit
 
 ---
 
+### AI Boekhouder
+
+![AI Boekhouder](previews/ai-boekhouder.png)
+
+**Financiële analyse met AI**
+
+Een geavanceerd analytics dashboard dat ZZP-gebruikers inzicht geeft in hun financiële gezondheid. Het systeem analyseert historische data, berekent gemiddelden en volatiliteit, en geeft gepersonaliseerde aanbevelingen voor financieel management.
+
+---
+
 ## Bedrijf Schermen
 
 ### Werkregistraties

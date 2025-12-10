@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart ZZP Hub - Dashboard Preview</title>
+    <link rel="stylesheet" href="frontend/src/pages/dashboard/styles.css">
+    <link rel="stylesheet" href="frontend/src/components/Header.css">
+</head>
+<body>
+    <div class="dashboard-page">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-container">
+                <h1 class="header-title">Smart ZZP Hub - Dashboard</h1>
+                <button class="btn btn-secondary">Uitloggen</button>
+            </div>
+        </header>
+        
+        <div class="container">
+            <h1 class="page-title">Inkomensoverzicht</h1>
+            
+            <!-- Summary Card with Gradient -->
+            <div class="summary-card">
+                <h2 class="summary-title">Financieel Overzicht</h2>
+                <div class="summary-rows">
+                    <div class="summary-row">
+                        <span class="summary-label">Inkomsten (omzet):</span>
+                        <span class="summary-amount positive">12.345,67</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Uitgaven:</span>
+                        <span class="summary-amount negative">1.234,56</span>
+                    </div>
+                    <div class="summary-row summary-total">
+                        <span class="summary-label">Netto winst:</span>
+                        <span class="summary-amount">11.111,11</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Statements -->
+            <div class="dashboard-section">
+                <h2 class="section-title">Recente overzichten</h2>
+                <div class="table-container">
+                    <table class="dashboard-table">
+                        <thead>
+                            <tr>
+                                <th>Week</th>
+                                <th>Bedrag</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Week 48 2024</td>
+                                <td class="amount">€ 2.500,00</td>
+                                <td>Betaald</td>
+                            </tr>
+                            <tr>
+                                <td>Week 47 2024</td>
+                                <td class="amount">€ 2.400,00</td>
+                                <td>Gefactureerd</td>
+                            </tr>
+                            <tr>
+                                <td>Week 46 2024</td>
+                                <td class="amount">€ 2.600,00</td>
+                                <td>Betaald</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="dashboard-actions">
+                <a href="#" class="btn btn-primary">Terug naar overzichten</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
