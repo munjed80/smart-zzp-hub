@@ -8,7 +8,6 @@ import { sendError } from '../utils/error.js';
 const router = Router();
 const ROLE_MAP = {
   zzp: 'zzp_user',
-  zzp_user: 'zzp_user',
   company: 'company_admin',
   company_admin: 'company_admin',
   company_staff: 'company_staff'
@@ -22,7 +21,7 @@ router.post('/register', async (req, res) => {
   try {
     const { email, password, fullName, userType, companyId: bodyCompanyId } = req.body;
     const normalizedType = userType || 'zzp_user';
-    const role = ROLE_MAP[normalizedType] || null;
+    const role = ROLE_MAP[normalizedType] || (normalizedType === 'zzp_user' ? 'zzp_user' : null);
 
     // Validate required fields
     if (!email || !password) {
