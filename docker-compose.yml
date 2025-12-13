@@ -19,7 +19,7 @@ services:
       - "5432:5432"
     healthcheck:
       # Ensure target database exists before backend starts (DB_USER is required above)
-      test: ["CMD-SHELL", "pg_isready -h localhost -d ${DB_NAME:-smart_zzp_hub} -U ${DB_USER:-zzp_user}"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -d ${DB_NAME:-smart_zzp_hub} -U ${DB_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
