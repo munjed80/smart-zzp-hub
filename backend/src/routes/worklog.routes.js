@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { query } from '../db/client.js';
 import { sendError } from '../utils/error.js';
+import { assertCompanyScope, assertZzpScope, requireRoles } from '../middleware/auth.js';
 
 const router = Router();
+router.use(requireRoles(['company_admin', 'company_staff', 'zzp_user']));
 
 // Valid tariff types
 const VALID_TARIFF_TYPES = ['stop', 'hour', 'location', 'point', 'project'];
@@ -16,6 +18,9 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
  */
 router.post('/', async (req, res) => {
   try {
+    if (req.user.role === 'zzp_user') {
+      return sendError(res, 403, 'Alleen bedrijven kunnen werklogs registreren');
+    }
     const {
       companyId,
       zzpId,
@@ -51,6 +56,10 @@ router.post('/', async (req, res) => {
     // Validate tariff type
     if (!VALID_TARIFF_TYPES.includes(tariffType)) {
       return sendError(res, 400, 'Ongeldig tarieftype');
+    }
+
+    if (!assertCompanyScope(req, res, companyId)) {
+      return;
     }
 
     // Validate numeric fields
@@ -95,6 +104,12 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const { companyId, zzpId, fromDate, toDate } = req.query;
+    const companyFilter = companyId || req.user.companyId;
+    const zzpFilter = req.user.role === 'zzp_user' ? req.user.profileId : zzpId;
+
+    if (!assertCompanyScope(req, res, companyFilter)) {
+      return;
+    }
 
     let sql = `
       SELECT id, company_id, zzp_id, work_date, tariff_type, quantity, unit_price, currency, notes, created_at
@@ -105,14 +120,12 @@ router.get('/', async (req, res) => {
     let paramIndex = 1;
 
     // Apply filters
-    if (companyId) {
-      sql += ` AND company_id = $${paramIndex++}`;
-      params.push(companyId);
-    }
+    sql += ` AND company_id = $${paramIndex++}`;
+    params.push(companyFilter);
 
-    if (zzpId) {
+    if (zzpFilter) {
       sql += ` AND zzp_id = $${paramIndex++}`;
-      params.push(zzpId);
+      params.push(zzpFilter);
     }
 
     if (fromDate) {
@@ -153,6 +166,13 @@ router.get('/:id', async (req, res) => {
       return sendError(res, 404, 'Werklog niet gevonden');
     }
 
+    if (!assertCompanyScope(req, res, result.rows[0].company_id)) {
+      return;
+    }
+    if (req.user.role === 'zzp_user' && !assertZzpScope(req, res, result.rows[0].zzp_id)) {
+      return;
+    }
+
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error fetching worklog:', error);
@@ -166,16 +186,23 @@ router.get('/:id', async (req, res) => {
  */
 router.delete('/:id', async (req, res) => {
   try {
+    if (req.user.role === 'zzp_user') {
+      return sendError(res, 403, 'Alleen bedrijven kunnen werklogs verwijderen');
+    }
     const { id } = req.params;
 
-    const result = await query(
-      'DELETE FROM worklogs WHERE id = $1 RETURNING id',
-      [id]
-    );
-
-    if (result.rows.length === 0) {
+    const existing = await query('SELECT company_id FROM worklogs WHERE id = $1', [id]);
+    if (existing.rows.length === 0) {
       return sendError(res, 404, 'Werklog niet gevonden');
     }
+    if (!assertCompanyScope(req, res, existing.rows[0].company_id)) {
+      return;
+    }
+
+    await query(
+      'DELETE FROM worklogs WHERE id = $1',
+      [id]
+    );
 
     res.status(204).send();
   } catch (error) {

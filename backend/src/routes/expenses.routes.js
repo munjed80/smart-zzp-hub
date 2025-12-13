@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { query } from '../db/client.js';
 import { sendError } from '../utils/error.js';
+import { assertZzpScope, requireRoles } from '../middleware/auth.js';
 
 const router = Router();
+router.use(requireRoles(['company_admin', 'company_staff', 'zzp_user']));
 
 // UUID regex pattern for validation
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -41,6 +43,20 @@ router.post('/', async (req, res) => {
       return sendError(res, 400, 'Ongeldig bedrag');
     }
 
+    if (req.user.role === 'zzp_user' && !assertZzpScope(req, res, zzpId)) {
+      return;
+    }
+
+    if (req.user.role !== 'zzp_user') {
+      const zzpCheck = await query('SELECT company_id FROM zzp_users WHERE id = $1', [zzpId]);
+      if (zzpCheck.rows.length === 0) {
+        return sendError(res, 400, 'ZZP gebruiker bestaat niet');
+      }
+      if (zzpCheck.rows[0].company_id !== req.user.companyId) {
+        return sendError(res, 403, 'Geen toegang tot deze ZZP gebruiker');
+      }
+    }
+
     // Insert into database
     const result = await query(
       `INSERT INTO expenses (zzp_id, expense_date, category, amount, notes)
@@ -72,22 +88,29 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const { zzpId } = req.query;
+    const zzpFilter = req.user.role === 'zzp_user' ? req.user.profileId : zzpId;
 
     let sql = `
-      SELECT id, zzp_id, expense_date, category, amount, notes, created_at
-      FROM expenses
+      SELECT e.id, e.zzp_id, e.expense_date, e.category, e.amount, e.notes, e.created_at
+      FROM expenses e
+      JOIN zzp_users z ON e.zzp_id = z.id
       WHERE 1=1
     `;
     const params = [];
     let paramIndex = 1;
 
+    if (req.user.role !== 'zzp_user') {
+      sql += ` AND z.company_id = $${paramIndex++}`;
+      params.push(req.user.companyId);
+    }
+
     // Apply filter with UUID validation
-    if (zzpId) {
-      if (!UUID_REGEX.test(zzpId)) {
+    if (zzpFilter) {
+      if (!UUID_REGEX.test(zzpFilter)) {
         return sendError(res, 400, 'Ongeldige ZZP-ID');
       }
-      sql += ` AND zzp_id = $${paramIndex++}`;
-      params.push(zzpId);
+      sql += ` AND e.zzp_id = $${paramIndex++}`;
+      params.push(zzpFilter);
     }
 
     sql += ' ORDER BY expense_date DESC';
@@ -113,14 +136,26 @@ router.delete('/:id', async (req, res) => {
       return sendError(res, 400, 'Ongeldige ID');
     }
 
-    const result = await query(
-      'DELETE FROM expenses WHERE id = $1 RETURNING id',
+    const existing = await query(
+      `SELECT e.id, e.zzp_id, z.company_id 
+       FROM expenses e 
+       JOIN zzp_users z ON e.zzp_id = z.id
+       WHERE e.id = $1`,
       [id]
     );
 
-    if (result.rows.length === 0) {
+    if (existing.rows.length === 0) {
       return sendError(res, 404, 'Uitgave niet gevonden');
     }
+
+    if (req.user.role === 'zzp_user' && !assertZzpScope(req, res, existing.rows[0].zzp_id)) {
+      return;
+    }
+    if (req.user.role !== 'zzp_user' && existing.rows[0].company_id !== req.user.companyId) {
+      return sendError(res, 403, 'Geen toegang tot deze uitgave');
+    }
+
+    await query('DELETE FROM expenses WHERE id = $1', [id]);
 
     res.status(204).send();
   } catch (error) {

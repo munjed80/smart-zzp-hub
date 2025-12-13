@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import { query } from '../db/client.js';
 import { sendError } from '../utils/error.js';
+import { assertCompanyScope, requireRoles } from '../middleware/auth.js';
 
 const router = Router();
+
+router.use(requireRoles(['company_admin', 'company_staff', 'zzp_user']));
 
 /**
  * GET /api/companies
@@ -10,8 +13,13 @@ const router = Router();
  */
 router.get('/', async (req, res) => {
   try {
+    const companyId = req.user.companyId;
+    if (!companyId) {
+      return sendError(res, 403, 'Geen bedrijf gekoppeld aan gebruiker');
+    }
     const result = await query(
-      'SELECT id, name, kvk_number, btw_number, email, phone, created_at FROM companies ORDER BY created_at DESC'
+      'SELECT id, name, kvk_number, btw_number, email, phone, created_at FROM companies WHERE id = $1',
+      [companyId]
     );
     res.json({ items: result.rows });
   } catch (error) {
@@ -27,6 +35,9 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    if (!assertCompanyScope(req, res, id)) {
+      return;
+    }
     const result = await query(
       'SELECT id, name, kvk_number, btw_number, email, phone, created_at FROM companies WHERE id = $1',
       [id]
@@ -50,6 +61,9 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
+    if (req.user.role !== 'company_admin') {
+      return sendError(res, 403, 'Alleen beheerders kunnen bedrijven aanmaken');
+    }
     const { name, kvk_number, btw_number, email, phone } = req.body;
 
     // Validate required fields
@@ -58,11 +72,13 @@ router.post('/', async (req, res) => {
     }
 
     const result = await query(
-      `INSERT INTO companies (name, kvk_number, btw_number, email, phone)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO companies (user_id, name, kvk_number, btw_number, email, phone)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id, name, kvk_number, btw_number, email, phone, created_at`,
-      [name, kvk_number || null, btw_number || null, email || null, phone || null]
+      [req.user.userId, name, kvk_number || null, btw_number || null, email || null, phone || null]
     );
+
+    await query('UPDATE users SET company_id = $1 WHERE id = $2', [result.rows[0].id, req.user.userId]);
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -79,6 +95,12 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { name, kvk_number, btw_number, email, phone } = req.body;
+    if (req.user.role !== 'company_admin') {
+      return sendError(res, 403, 'Alleen beheerders kunnen bedrijfsgegevens wijzigen');
+    }
+    if (!assertCompanyScope(req, res, id)) {
+      return;
+    }
 
     // Validate required fields
     if (!name) {
@@ -111,6 +133,12 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    if (req.user.role !== 'company_admin') {
+      return sendError(res, 403, 'Alleen beheerders kunnen bedrijven verwijderen');
+    }
+    if (!assertCompanyScope(req, res, id)) {
+      return;
+    }
 
     const result = await query(
       'DELETE FROM companies WHERE id = $1 RETURNING id',

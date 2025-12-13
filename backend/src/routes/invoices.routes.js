@@ -4,8 +4,10 @@ import { calcLineTotal, calcTotals } from '../utils/calc.js';
 import PDFDocument from 'pdfkit';
 import { query } from '../db/client.js';
 import { getWeekDateRange } from '../utils/week.js';
+import { assertCompanyScope, assertZzpScope, requireRoles } from '../middleware/auth.js';
 
 const router = Router();
+router.use(requireRoles(['company_admin', 'company_staff', 'zzp_user']));
 
 // PDF layout constants
 const DESCRIPTION_MAX_LENGTH = 40;
@@ -206,44 +208,6 @@ router.post('/generate', async (req, res) => {
       return sendError(res, 400, 'Overzicht-ID is verplicht');
     }
 
-    // Check if an invoice already exists for this statement
-    const existingInvoiceResult = await query(
-      `SELECT id, invoice_number, file_url, created_at
-       FROM invoices
-       WHERE statement_id = $1`,
-      [statementId]
-    );
-
-    if (existingInvoiceResult.rows.length > 0) {
-      // Invoice already exists, return existing invoice metadata
-      const existingInvoice = existingInvoiceResult.rows[0];
-      
-      // Fetch statement details to get additional info
-      const statementResult = await query(
-        `SELECT year, week_number, total_amount, currency
-         FROM statements
-         WHERE id = $1`,
-        [statementId]
-      );
-      
-      const statement = statementResult.rows[0];
-      
-      // Return existing invoice metadata (without regenerating PDF)
-      return res.status(200).json({
-        invoiceId: existingInvoice.id,
-        invoiceNumber: existingInvoice.invoice_number,
-        statementId: statementId,
-        year: statement.year,
-        weekNumber: statement.week_number,
-        total: statement.total_amount,
-        currency: statement.currency || 'EUR',
-        createdAt: existingInvoice.created_at,
-        fileUrl: existingInvoice.file_url,
-        isExisting: true
-      });
-    }
-
-    // Fetch statement with company and ZZP user info
     const statementResult = await query(
       `SELECT 
         s.id,
@@ -278,6 +242,40 @@ router.post('/generate', async (req, res) => {
     }
 
     const statement = statementResult.rows[0];
+    if (!assertCompanyScope(req, res, statement.company_id)) {
+      return;
+    }
+    if (req.user.role === 'zzp_user' && !assertZzpScope(req, res, statement.zzp_id)) {
+      return;
+    }
+
+    // Check if an invoice already exists for this statement
+    const existingInvoiceResult = await query(
+      `SELECT id, invoice_number, file_url, created_at
+       FROM invoices
+       WHERE statement_id = $1`,
+      [statementId]
+    );
+
+    if (existingInvoiceResult.rows.length > 0) {
+      // Invoice already exists, return existing invoice metadata
+      const existingInvoice = existingInvoiceResult.rows[0];
+      
+      // Fetch statement details to get additional info
+      // Return existing invoice metadata (without regenerating PDF)
+      return res.status(200).json({
+        invoiceId: existingInvoice.id,
+        invoiceNumber: existingInvoice.invoice_number,
+        statementId: statementId,
+        year: statement.year,
+        weekNumber: statement.week_number,
+        total: statement.total_amount,
+        currency: statement.currency || 'EUR',
+        createdAt: existingInvoice.created_at,
+        fileUrl: existingInvoice.file_url,
+        isExisting: true
+      });
+    }
 
     // Get week date range
     const weekDateRange = getWeekDateRange(statement.year, statement.week_number);
@@ -384,14 +382,22 @@ router.get('/by-statement/:statementId', async (req, res) => {
     const { statementId } = req.params;
 
     const result = await query(
-      `SELECT id, invoice_number, file_url, created_at
-       FROM invoices
-       WHERE statement_id = $1`,
+      `SELECT i.id, i.invoice_number, i.file_url, i.created_at, s.company_id, s.zzp_id
+       FROM invoices i
+       JOIN statements s ON i.statement_id = s.id
+       WHERE i.statement_id = $1`,
       [statementId]
     );
 
     if (result.rows.length === 0) {
       return sendError(res, 404, 'Factuur niet gevonden voor dit overzicht');
+    }
+
+    if (!assertCompanyScope(req, res, result.rows[0].company_id)) {
+      return;
+    }
+    if (req.user.role === 'zzp_user' && !assertZzpScope(req, res, result.rows[0].zzp_id)) {
+      return;
     }
 
     res.json(result.rows[0]);

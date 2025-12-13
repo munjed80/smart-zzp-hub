@@ -3,23 +3,25 @@
 -- DO NOT apply this in production
 
 -- Test user (password: 'test123' - bcrypt hashed)
-INSERT INTO users (id, email, password_hash, full_name, user_type)
+INSERT INTO users (id, email, password_hash, full_name, user_type, role)
 VALUES (
     'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
     'test@example.com',
     '$2b$10$rQZGJ4H.8RQX8p7JyNXGj.9XKvNkLQ.Kz6hJvKqZpXqJxJQG6Kq2e',
     'Test User',
-    'zzp'
+    'zzp_user',
+    'zzp_user'
 ) ON CONFLICT (email) DO NOTHING;
 
 -- Test company user (password: 'company123' - bcrypt hashed)
-INSERT INTO users (id, email, password_hash, full_name, user_type)
+INSERT INTO users (id, email, password_hash, full_name, user_type, role)
 VALUES (
     'b2c3d4e5-f6a7-8901-bcde-f23456789012',
     'company@example.com',
     '$2b$10$rQZGJ4H.8RQX8p7JyNXGj.9XKvNkLQ.Kz6hJvKqZpXqJxJQG6Kq2e',
     'Company Admin',
-    'company'
+    'company_admin',
+    'company_admin'
 ) ON CONFLICT (email) DO NOTHING;
 
 -- Test company
@@ -43,6 +45,10 @@ VALUES (
     'NL987654321B01',
     'company@example.com'
 ) ON CONFLICT (id) DO NOTHING;
+
+-- Link users to companies for tenant scoping
+UPDATE users SET company_id = 'c1d2e3f4-a5b6-7890-cdef-123456789abc' WHERE id = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+UPDATE users SET company_id = 'd2e3f4a5-b6c7-8901-def0-234567890123' WHERE id = 'b2c3d4e5-f6a7-8901-bcde-f23456789012';
 
 -- Test ZZP user linked to the test company
 INSERT INTO zzp_users (id, user_id, company_id, full_name, email)

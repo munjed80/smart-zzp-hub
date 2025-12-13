@@ -3,6 +3,8 @@ import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import authRouter from './routes/auth.routes.js';
 import worklogRoutes from './routes/worklog.routes.js';
 import companiesRouter from './routes/companies.routes.js';
@@ -12,6 +14,7 @@ import invoicesRouter from './routes/invoices.routes.js';
 import expensesRouter from './routes/expenses.routes.js';
 import btwRouter from './routes/btw.routes.js';
 import aiAccountantRouter from './routes/aiAccountant.routes.js';
+import { authenticate } from './middleware/auth.js';
 
 dotenv.config();
 
@@ -22,6 +25,8 @@ if (!process.env.DATABASE_URL) {
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const publicDir = path.join(__dirname, '../../frontend/public');
 
 // Rate limiting middleware
 // Global rate limiter protects all endpoints from abuse
@@ -39,6 +44,13 @@ app.use(limiter);
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+app.use(express.static(publicDir));
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -47,6 +59,17 @@ app.get('/api/health', (req, res) => {
 
 // Mount routes
 app.use('/api/auth', authRouter);
+
+// Serve frontend for non-API routes without forcing auth
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
+
+// All routes below require authentication
+app.use(authenticate);
 app.use('/api/worklogs', worklogRoutes);
 app.use('/api/companies', companiesRouter);
 app.use('/api/zzp-users', zzpUsersRouter);

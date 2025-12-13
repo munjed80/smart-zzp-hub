@@ -2,8 +2,10 @@ import { Router } from 'express';
 import { sendError } from '../utils/error.js';
 import { calcBTW } from '../utils/calc.js';
 import { query } from '../db/client.js';
+import { assertCompanyScope, assertZzpScope, requireRoles } from '../middleware/auth.js';
 
 const router = Router();
+router.use(requireRoles(['company_admin', 'company_staff', 'zzp_user']));
 
 // UUID regex pattern for validation
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -283,6 +285,19 @@ router.post('/', async (req, res) => {
     
     if (!UUID_REGEX.test(zzpId)) {
       return sendError(res, 400, 'Ongeldige ZZP-ID');
+    }
+
+    if (req.user.role === 'zzp_user' && !assertZzpScope(req, res, zzpId)) {
+      return;
+    }
+    if (req.user.role !== 'zzp_user') {
+      const zzpCheck = await query('SELECT company_id FROM zzp_users WHERE id = $1', [zzpId]);
+      if (zzpCheck.rows.length === 0) {
+        return sendError(res, 400, 'ZZP gebruiker bestaat niet');
+      }
+      if (!assertCompanyScope(req, res, zzpCheck.rows[0].company_id)) {
+        return;
+      }
     }
     
     // Calculate date ranges (24 months for comprehensive analysis)
