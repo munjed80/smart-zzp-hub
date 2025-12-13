@@ -7,9 +7,10 @@ services:
     container_name: smart-zzp-hub-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: smart_zzp_hub
-      POSTGRES_USER: ${DB_USER:-zzp_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_this_password}
+      # Aligns DB creation with backend DATABASE_URL
+      POSTGRES_DB: ${DB_NAME:-smart_zzp_hub}
+      POSTGRES_USER: ${DB_USER:?DB_USER is required}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
@@ -17,7 +18,8 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-zzp_user}"]
+      # Ensure target database exists before backend starts
+      test: ["CMD-SHELL", "pg_isready -h localhost -d ${DB_NAME:-smart_zzp_hub} -U ${DB_USER:?DB_USER is required}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -35,8 +37,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: postgresql://${DB_USER:-zzp_user}:${DB_PASSWORD:-change_this_password}@postgres:5432/smart_zzp_hub
-      JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgresql://${DB_USER:?DB_USER is required}:${DB_PASSWORD:?DB_PASSWORD is required}@postgres:5432/${DB_NAME:-smart_zzp_hub}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
     ports:
       - "4000:4000"
     healthcheck:
