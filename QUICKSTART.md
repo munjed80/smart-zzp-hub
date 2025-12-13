@@ -17,6 +17,7 @@ docker compose up -d --build
 - **Werkbon**: Tab "Werkbonnen" → voeg entries toe (uur/stop/locatie/project/punt)
 - **Overzicht**: Tab "Overzichten" → “Weekoverzicht genereren” → exporteer PDF/CSV → genereer factuur
 - **Uitgaven** (ZZP): Tab "Uitgaven" → nieuwe uitgave opslaan
+- **E-mail (staging)**: Tab "Outbox" toont gelogde mails uit `storage/mail-outbox`
 
 4) **Gezondheidscheck**
 ```bash

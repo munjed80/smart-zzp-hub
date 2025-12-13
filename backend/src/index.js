@@ -14,6 +14,7 @@ import invoicesRouter from './routes/invoices.routes.js';
 import expensesRouter from './routes/expenses.routes.js';
 import btwRouter from './routes/btw.routes.js';
 import aiAccountantRouter from './routes/aiAccountant.routes.js';
+import outboxRouter from './routes/outbox.routes.js';
 import { authenticate } from './middleware/auth.js';
 
 dotenv.config();
@@ -21,6 +22,13 @@ dotenv.config();
 // Check for DATABASE_URL
 if (!process.env.DATABASE_URL) {
   console.warn('WARNING: DATABASE_URL is not set. Database operations will fail.');
+}
+if (process.env.NODE_ENV === 'production') {
+  const critical = ['DATABASE_URL', 'JWT_SECRET'];
+  const missing = critical.filter(v => !process.env[v]);
+  if (missing.length) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
 }
 
 const app = express();
@@ -41,7 +49,16 @@ const limiter = rateLimit({
 
 // Middleware
 app.use(limiter);
-app.use(cors());
+
+const corsOrigins = (process.env.CORS_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || corsOrigins.length === 0) return callback(null, true);
+    if (corsOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Niet toegestaan door CORS'), false);
+  }
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan('dev'));
 app.use((req, res, next) => {
@@ -78,6 +95,7 @@ app.use('/api/invoices', invoicesRouter);
 app.use('/api/expenses', expensesRouter);
 app.use('/api/btw', btwRouter);
 app.use('/api/ai/accountant', aiAccountantRouter);
+app.use('/api/outbox', outboxRouter);
 
 // 404 handler
 app.use((req, res) => {

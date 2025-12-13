@@ -37,11 +37,13 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: postgresql://${DB_USER:-zzp_user}:${DB_PASSWORD:?DB_PASSWORD is required}@postgres:5432/${DB_NAME:-smart_zzp_hub}
+      DATABASE_URL: postgresql://${DB_USER:-zzp_user}:${DB_PASSWORD:?DB_PASSWORD is required}@postgres:5432/${DB_NAME:-smart_zzp_hub}?sslmode=disable
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
     networks:
       default:
         ipv4_address: 172.18.0.10
+    extra_hosts:
+      - "postgres:172.18.0.12"
     ports:
       - "4000:4000"
     healthcheck:

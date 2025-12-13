@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS companies (
     name TEXT NOT NULL,
     kvk_number TEXT,
     btw_number TEXT,
+    vat_rate NUMERIC(4,3) DEFAULT 0.21,
     email TEXT,
     phone TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

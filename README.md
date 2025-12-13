@@ -34,6 +34,7 @@ Zorg dat de Postgres database is gevuld met `db/schema.sql` en `db/seed.sql`.
 - **Frontend:** Lichtgewicht SPA (vanilla JS) served via Express/Nginx
 - **Database:** PostgreSQL met UUID’s, tenant scoping via `company_id`
 - **Exports:** Statements naar PDF/CSV; facturen als PDF (base64 via API)
+- **E-mail (staging):** Outbox logging in `storage/mail-outbox` i.p.v. directe SMTP
 
 ## Belangrijke mappen
 - `backend/src` – API routes, middleware, PDF/CSV exports

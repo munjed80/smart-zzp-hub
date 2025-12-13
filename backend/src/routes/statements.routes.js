@@ -5,6 +5,7 @@ import { getCurrentISOWeekInfo, getWeekDateRange } from '../utils/week.js';
 import { assertCompanyScope, assertZzpScope, requireRoles } from '../middleware/auth.js';
 import PDFDocument from 'pdfkit';
 import { calcTotals } from '../utils/calc.js';
+import { writeMailToOutbox } from '../utils/outbox.js';
 
 const router = Router();
 router.use(requireRoles(['company_admin', 'company_staff', 'zzp_user']));
@@ -427,6 +428,51 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching statement:', error);
     sendError(res, 500, 'Kon overzicht niet ophalen');
+  }
+});
+
+/**
+ * POST /api/statements/:id/send
+ * Simulate sending statement by email (writes to mail outbox)
+ */
+router.post('/:id/send', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const statementResult = await query(
+      `SELECT 
+        s.id, s.company_id, s.zzp_id, s.year, s.week_number, s.total_amount, s.currency,
+        c.name as company_name, c.email as company_email,
+        z.full_name as zzp_name, z.email as zzp_email
+       FROM statements s
+       JOIN companies c ON s.company_id = c.id
+       JOIN zzp_users z ON s.zzp_id = z.id
+       WHERE s.id = $1`,
+      [id]
+    );
+
+    if (statementResult.rows.length === 0) {
+      return sendError(res, 404, 'Overzicht niet gevonden');
+    }
+
+    const statement = statementResult.rows[0];
+    if (!assertCompanyScope(req, res, statement.company_id)) return;
+    if (req.user.role === 'zzp_user' && !assertZzpScope(req, res, statement.zzp_id)) return;
+
+    const mail = {
+      createdAt: new Date().toISOString(),
+      to: statement.zzp_email || 'onbekend',
+      subject: `Weekoverzicht ${statement.week_number}/${statement.year}`,
+      body: `Automatisch bericht: uw weekoverzicht (${statement.week_number}/${statement.year}) bedrag ${statement.total_amount || 0} ${statement.currency || 'EUR'}.`,
+      statementId: statement.id,
+      company: statement.company_name,
+      zzp: statement.zzp_name
+    };
+
+    const filePath = writeMailToOutbox(mail);
+    res.json({ sent: true, outboxFile: filePath });
+  } catch (error) {
+    console.error('Error sending statement mail:', error);
+    sendError(res, 500, 'Kon e-mail niet versturen');
   }
 });
 

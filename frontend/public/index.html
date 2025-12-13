@@ -44,6 +44,7 @@
         <button data-tab="statements" class="tab">Overzichten</button>
         <button data-tab="invoices" class="tab">Facturen</button>
         <button data-tab="expenses" class="tab">Uitgaven</button>
+        <button data-tab="outbox" class="tab">Outbox</button>
         <button data-tab="settings" class="tab">Instellingen</button>
       </nav>
 
@@ -227,6 +228,30 @@
                 </tr>
               </thead>
               <tbody id="expense-list"></tbody>
+            </table>
+          </div>
+          <p class="muted small">Totaal uitgaven: <span id="expense-total">€0,00</span></p>
+        </div>
+      </section>
+
+      <section id="outbox" class="tab-content hidden">
+        <div class="card">
+          <div class="card-header">
+            <h2>Outbox (simulatie e-mail)</h2>
+          </div>
+          <p class="muted small">E-mails worden in staging gelogd naar <code>storage/mail-outbox</code>.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Verzonden</th>
+                  <th>Naar</th>
+                  <th>Onderwerp</th>
+                  <th>Statement</th>
+                  <th>Factuur</th>
+                </tr>
+              </thead>
+              <tbody id="outbox-list"></tbody>
             </table>
           </div>
         </div>

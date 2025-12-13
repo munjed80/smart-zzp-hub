@@ -8,7 +8,7 @@
 
 ## Install Steps
 1. Clone repo: `git clone https://github.com/munjed80/smart-zzp-hub.git && cd smart-zzp-hub`
-2. Create `.env` from `.env.example` and fill secrets.
+2. Create `.env` from `.env.example` and fill secrets (incl. `CORS_ORIGINS`).
 3. Pull/build and start: `docker compose up -d --build`
 4. Verify health:
    - `docker compose ps`

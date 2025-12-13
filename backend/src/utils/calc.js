@@ -40,12 +40,12 @@ export function calcBTW(amount, rate = BTW_RATE) {
  * @param {Array} lines - Array of objects with quantity and unitPrice properties
  * @returns {Object} - Object with subtotal, btw, and total
  */
-export function calcTotals(lines) {
+export function calcTotals(lines, rate = BTW_RATE) {
   const subtotal = lines.reduce((sum, line) => {
     return sum + calcLineTotal(line.quantity, line.unitPrice);
   }, 0);
   
-  const btw = calcBTW(subtotal);
+  const btw = calcBTW(subtotal, rate);
   const total = roundMoney(subtotal + btw);
   
   return {

@@ -223,6 +223,7 @@ router.post('/generate', async (req, res) => {
         c.name as company_name,
         c.kvk_number,
         c.btw_number,
+        c.vat_rate,
         c.email as company_email,
         c.phone as company_phone,
         z.id as zzp_user_id,
@@ -300,7 +301,8 @@ router.post('/generate', async (req, res) => {
       quantity: parseFloat(w.quantity) || 0,
       unitPrice: parseFloat(w.unit_price) || 0
     }));
-    const { subtotal, btw, total } = calcTotals(worklogItems);
+    const vatRate = statement.btw_number === '0%' ? 0 : (statement.btw_number ? 0.21 : (statement.vat_rate || 0.21));
+    const { subtotal, btw, total } = calcTotals(worklogItems, vatRate);
 
     // Generate invoice number using legal Dutch format with statement's year
     const sequence = await getNextInvoiceSequence(statement.year);

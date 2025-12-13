@@ -6,7 +6,8 @@ const state = {
   statements: [],
   worklogs: [],
   expenses: [],
-  invoices: []
+  invoices: [],
+  outbox: []
 };
 
 function showToast(message) {
@@ -33,6 +34,8 @@ function setAuth(token, user) {
     document.querySelector('[data-tab="worklogs"]').classList.add('hidden');
     document.getElementById('worklogs').classList.add('hidden');
     document.getElementById('generate-statement').classList.add('hidden');
+    document.querySelector('[data-tab="outbox"]').classList.add('hidden');
+    document.getElementById('outbox').classList.add('hidden');
   }
 }
 
@@ -133,6 +136,7 @@ async function loadStatements() {
   state.statements = data.items || [];
   renderStatements();
   renderDashboard();
+  loadInvoices();
 }
 
 async function generateStatement() {
@@ -178,6 +182,28 @@ async function generateInvoice(statementId) {
   renderInvoices();
 }
 
+async function sendStatementEmail(id) {
+  const res = await authFetch(`/api/statements/${id}/send`, { method: 'POST' });
+  if (res.ok) {
+    showToast('E-mail toegevoegd aan outbox');
+    loadOutbox();
+  } else {
+    showToast('Kon e-mail niet versturen');
+  }
+}
+
+async function markStatementStatus(id, status) {
+  const res = await authFetch(`/api/statements/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status })
+  });
+  if (res.ok) {
+    showToast('Status bijgewerkt');
+    loadStatements();
+  }
+}
+
 function renderStatements() {
   const list = document.getElementById('statement-list');
   list.innerHTML = '';
@@ -192,7 +218,11 @@ function renderStatements() {
         <button class="btn btn-secondary btn-sm" data-export-csv="${s.id}">CSV</button>
         <button class="btn btn-secondary btn-sm" data-export-pdf="${s.id}">PDF</button>
       </td>
-      <td><button class="btn btn-primary btn-sm" data-invoice="${s.id}">Factuur</button></td>
+      <td>
+        <button class="btn btn-primary btn-sm" data-invoice="${s.id}">Factuur</button>
+        <button class="btn btn-secondary btn-sm" data-send="${s.id}">E-mail</button>
+        ${s.status !== 'paid' ? `<button class="btn btn-secondary btn-sm" data-paid="${s.id}">Markeer betaald</button>` : `<button class="btn btn-secondary btn-sm" data-open="${s.id}">Markeer open</button>`}
+      </td>
     `;
     list.appendChild(tr);
   });
@@ -300,7 +330,9 @@ async function loadExpenses() {
   state.expenses = data.items || [];
   const list = document.getElementById('expense-list');
   list.innerHTML = '';
+  let totalExpense = 0;
   state.expenses.forEach(exp => {
+    totalExpense += Number(exp.amount || 0);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${exp.expense_date}</td>
@@ -310,6 +342,7 @@ async function loadExpenses() {
     `;
     list.appendChild(tr);
   });
+  document.getElementById('expense-total').textContent = currency(totalExpense);
 }
 
 async function submitExpense(event) {
@@ -341,6 +374,9 @@ async function loadAllData() {
     loadExpenses()
   ]);
   await loadInvoices();
+  if (state.user.role !== 'zzp_user') {
+    await loadOutbox();
+  }
 }
 
 function bindEvents() {
@@ -359,15 +395,39 @@ function bindEvents() {
   document.getElementById('generate-statement').addEventListener('click', generateStatement);
 
   document.getElementById('statement-list').addEventListener('click', (e) => {
-    const id = e.target.dataset.exportCsv || e.target.dataset.exportPdf || e.target.dataset.invoice;
+    const id = e.target.dataset.exportCsv || e.target.dataset.exportPdf || e.target.dataset.invoice || e.target.dataset.send || e.target.dataset.paid || e.target.dataset.open;
     if (!id) return;
     if (e.target.dataset.exportCsv) exportStatement(id, 'csv');
     if (e.target.dataset.exportPdf) exportStatement(id, 'pdf');
     if (e.target.dataset.invoice) generateInvoice(id);
+    if (e.target.dataset.send) sendStatementEmail(id);
+    if (e.target.dataset.paid) markStatementStatus(id, 'paid');
+    if (e.target.dataset.open) markStatementStatus(id, 'open');
   });
   document.getElementById('dashboard-statements').addEventListener('click', (e) => {
     const id = e.target.dataset.exportPdf;
     if (id) exportStatement(id, 'pdf');
+  });
+}
+
+async function loadOutbox() {
+  const res = await authFetch('/api/outbox');
+  if (!res.ok) return;
+  const data = await res.json();
+  state.outbox = data.items || [];
+  const list = document.getElementById('outbox-list');
+  if (!list) return;
+  list.innerHTML = '';
+  state.outbox.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${item.createdAt}</td>
+      <td>${item.to}</td>
+      <td>${item.subject}</td>
+      <td>${item.statementId || ''}</td>
+      <td>${item.invoiceNumber || ''}</td>
+    `;
+    list.appendChild(tr);
   });
 }
 
