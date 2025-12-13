@@ -9,7 +9,7 @@ services:
     environment:
       # Aligns DB creation with backend DATABASE_URL
       POSTGRES_DB: ${DB_NAME:-smart_zzp_hub}
-      POSTGRES_USER: ${DB_USER:?DB_USER is required}
+      POSTGRES_USER: ${DB_USER:-zzp_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -18,8 +18,8 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      # Ensure target database exists before backend starts (uses POSTGRES_USER set above)
-      test: ["CMD-SHELL", "pg_isready -h localhost -d ${DB_NAME:-smart_zzp_hub} -U $${POSTGRES_USER}"]
+      # Ensure target database exists before backend starts
+      test: ["CMD-SHELL", "pg_isready -h localhost -d ${DB_NAME:-smart_zzp_hub} -U ${DB_USER:-zzp_user}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -37,7 +37,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: postgresql://${DB_USER:?DB_USER is required}:${DB_PASSWORD:?DB_PASSWORD is required}@postgres:5432/${DB_NAME:-smart_zzp_hub}
+      DATABASE_URL: postgresql://${DB_USER:-zzp_user}:${DB_PASSWORD:?DB_PASSWORD is required}@postgres:5432/${DB_NAME:-smart_zzp_hub}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
     ports:
       - "4000:4000"
