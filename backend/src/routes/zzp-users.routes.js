@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { query } from '../db/client.js';
 import { sendError } from '../utils/error.js';
+import { assertCompanyScope, requireRoles } from '../middleware/auth.js';
 
 const router = Router();
+router.use(requireRoles(['company_admin', 'company_staff']));
 
 /**
  * GET /api/zzp-users
@@ -12,6 +14,10 @@ const router = Router();
 router.get('/', async (req, res) => {
   try {
     const { companyId } = req.query;
+    const targetCompanyId = companyId || req.user.companyId;
+    if (!assertCompanyScope(req, res, targetCompanyId)) {
+      return;
+    }
 
     let sql = `
       SELECT id, company_id, full_name, email, phone, external_ref, created_at
@@ -20,10 +26,8 @@ router.get('/', async (req, res) => {
     const params = [];
 
     // Filter by company if provided
-    if (companyId) {
-      sql += ' WHERE company_id = $1';
-      params.push(companyId);
-    }
+    sql += ' WHERE company_id = $1';
+    params.push(targetCompanyId);
 
     sql += ' ORDER BY created_at DESC';
 
@@ -52,6 +56,10 @@ router.get('/:id', async (req, res) => {
       return sendError(res, 404, 'ZZP gebruiker niet gevonden');
     }
 
+    if (!assertCompanyScope(req, res, result.rows[0].company_id)) {
+      return;
+    }
+
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error fetching ZZP user:', error);
@@ -78,6 +86,10 @@ router.post('/', async (req, res) => {
         error: 'Missing required fields',
         missingFields
       });
+    }
+
+    if (!assertCompanyScope(req, res, companyId)) {
+      return;
     }
 
     const result = await query(
@@ -121,6 +133,10 @@ router.put('/:id', async (req, res) => {
       });
     }
 
+    if (!assertCompanyScope(req, res, companyId)) {
+      return;
+    }
+
     const result = await query(
       `UPDATE zzp_users
        SET company_id = $1, full_name = $2, email = $3, phone = $4, external_ref = $5
@@ -154,14 +170,15 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await query(
-      'DELETE FROM zzp_users WHERE id = $1 RETURNING id',
-      [id]
-    );
-
-    if (result.rows.length === 0) {
+    const existing = await query('SELECT company_id FROM zzp_users WHERE id = $1', [id]);
+    if (existing.rows.length === 0) {
       return sendError(res, 404, 'ZZP gebruiker niet gevonden');
     }
+    if (!assertCompanyScope(req, res, existing.rows[0].company_id)) {
+      return;
+    }
+
+    await query('DELETE FROM zzp_users WHERE id = $1', [id]);
 
     res.status(204).send();
   } catch (error) {

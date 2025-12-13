@@ -2,8 +2,10 @@ import { Router } from 'express';
 import { sendError } from '../utils/error.js';
 import { calcLineTotal, calcBTW } from '../utils/calc.js';
 import { query } from '../db/client.js';
+import { assertCompanyScope, assertZzpScope, requireRoles } from '../middleware/auth.js';
 
 const router = Router();
+router.use(requireRoles(['company_admin', 'company_staff', 'zzp_user']));
 
 // UUID regex pattern for validation
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -70,13 +72,21 @@ function escapeCsvValue(val) {
 router.get('/overview', async (req, res) => {
   try {
     const { companyId, period, year, value } = req.query;
+    if (req.user.role === 'zzp_user') {
+      return sendError(res, 403, 'BTW overzicht is beschikbaar voor bedrijven');
+    }
+
+    const targetCompanyId = companyId || req.user.companyId;
+    if (!assertCompanyScope(req, res, targetCompanyId)) {
+      return;
+    }
 
     // Validate required fields
-    if (!companyId) {
+    if (!targetCompanyId) {
       return sendError(res, 400, 'Bedrijf-ID is verplicht');
     }
 
-    if (!UUID_REGEX.test(companyId)) {
+    if (!UUID_REGEX.test(targetCompanyId)) {
       return sendError(res, 400, 'Ongeldige bedrijf-ID');
     }
 
@@ -103,7 +113,7 @@ router.get('/overview', async (req, res) => {
        WHERE company_id = $1
          AND work_date >= $2
          AND work_date <= $3`,
-      [companyId, startDate, endDate]
+      [targetCompanyId, startDate, endDate]
     );
 
     const subtotal = Number((parseFloat(result.rows[0].total) || 0).toFixed(2));
@@ -146,20 +156,39 @@ router.get('/export', async (req, res) => {
       return sendError(res, 400, 'Ongeldige scope');
     }
 
-    // Validate ID based on scope
-    if (scope === 'zzp') {
-      if (!zzpId) {
+    let targetCompanyId = companyId || null;
+    let targetZzpId = zzpId || null;
+
+    if (scope === 'company') {
+      if (req.user.role === 'zzp_user') {
+        return sendError(res, 403, 'Geen toegang tot bedrijfs BTW export');
+      }
+      targetCompanyId = targetCompanyId || req.user.companyId;
+      if (!UUID_REGEX.test(targetCompanyId || '')) {
+        return sendError(res, 400, 'Ongeldige bedrijf-ID');
+      }
+      if (!assertCompanyScope(req, res, targetCompanyId)) {
+        return;
+      }
+    } else {
+      targetZzpId = req.user.role === 'zzp_user' ? req.user.profileId : targetZzpId;
+      if (!targetZzpId) {
         return sendError(res, 400, 'ZZP-ID is verplicht');
       }
-      if (!UUID_REGEX.test(zzpId)) {
+      if (!UUID_REGEX.test(targetZzpId)) {
         return sendError(res, 400, 'Ongeldige ZZP-ID');
       }
-    } else if (scope === 'company') {
-      if (!companyId) {
-        return sendError(res, 400, 'Bedrijf-ID is verplicht');
+      if (req.user.role === 'zzp_user' && !assertZzpScope(req, res, targetZzpId)) {
+        return;
       }
-      if (!UUID_REGEX.test(companyId)) {
-        return sendError(res, 400, 'Ongeldige bedrijf-ID');
+      if (req.user.role !== 'zzp_user') {
+        const zzpCheck = await query('SELECT company_id FROM zzp_users WHERE id = $1', [targetZzpId]);
+        if (zzpCheck.rows.length === 0) {
+          return sendError(res, 400, 'ZZP gebruiker bestaat niet');
+        }
+        if (!assertCompanyScope(req, res, zzpCheck.rows[0].company_id)) {
+          return;
+        }
       }
     }
 
@@ -197,7 +226,7 @@ router.get('/export', async (req, res) => {
           AND work_date <= $3
         ORDER BY work_date ASC
       `;
-      worklogsParams = [companyId, startDate, endDate];
+      worklogsParams = [targetCompanyId, startDate, endDate];
     } else {
       worklogsQuery = `
         SELECT work_date, tariff_type, quantity, unit_price, notes
@@ -207,7 +236,7 @@ router.get('/export', async (req, res) => {
           AND work_date <= $3
         ORDER BY work_date ASC
       `;
-      worklogsParams = [zzpId, startDate, endDate];
+      worklogsParams = [targetZzpId, startDate, endDate];
     }
 
     const worklogsResult = await query(worklogsQuery, worklogsParams);

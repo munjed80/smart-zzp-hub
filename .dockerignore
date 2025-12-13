@@ -11,8 +11,7 @@ docs/
 .env.*
 !.env.example
 
-# Node modules (will be installed in container)
-node_modules/
+# Node modules (allowed for backend build context)
 npm-debug.log*
 
 # Logs

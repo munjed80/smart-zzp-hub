@@ -6,6 +6,12 @@ import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/jwt.js';
 import { sendError } from '../utils/error.js';
 
 const router = Router();
+const ROLE_MAP = {
+  zzp: 'zzp_user',
+  company: 'company_admin',
+  company_admin: 'company_admin',
+  company_staff: 'company_staff'
+};
 
 /**
  * POST /api/auth/register
@@ -13,14 +19,16 @@ const router = Router();
  */
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, fullName, userType } = req.body;
+    const { email, password, fullName, userType, companyId: bodyCompanyId } = req.body;
+    const normalizedType = userType || 'zzp_user';
+    const role = ROLE_MAP[normalizedType] || (normalizedType === 'zzp_user' ? 'zzp_user' : null);
 
     // Validate required fields
     if (!email || !password) {
       return sendError(res, 400, 'E-mail en wachtwoord zijn verplicht');
     }
 
-    if (!['zzp', 'company'].includes(userType)) {
+    if (!role) {
       return sendError(res, 400, 'Ongeldig gebruikerstype');
     }
 
@@ -40,35 +48,40 @@ router.post('/register', async (req, res) => {
 
     // Create user
     const userResult = await query(
-      `INSERT INTO users (email, password_hash, full_name, user_type)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, email, full_name, user_type, created_at`,
-      [email.toLowerCase(), passwordHash, fullName || null, userType]
+      `INSERT INTO users (email, password_hash, full_name, user_type, role)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, email, full_name, user_type, role, company_id, created_at`,
+      [email.toLowerCase(), passwordHash, fullName || null, role, role]
     );
 
     const user = userResult.rows[0];
 
     // Create associated profile based on user type
     let profileId = null;
-    if (userType === 'zzp') {
-      // First create a placeholder company for the ZZP user
-      const companyResult = await query(
-        `INSERT INTO companies (user_id, name, email)
-         VALUES ($1, $2, $3)
-         RETURNING id`,
-        [user.id, `${fullName || email}'s Company`, email.toLowerCase()]
-      );
-      
-      // Then create ZZP profile
+    let companyId = bodyCompanyId || null;
+    if (role === 'zzp_user') {
+      if (!companyId) {
+        const companyResult = await query(
+          `INSERT INTO companies (user_id, name, email)
+           VALUES ($1, $2, $3)
+           RETURNING id`,
+          [user.id, `${fullName || 'Nieuw Bedrijf'}`, email.toLowerCase()]
+        );
+        companyId = companyResult.rows[0].id;
+      } else {
+        const companyCheck = await query('SELECT id FROM companies WHERE id = $1', [companyId]);
+        if (companyCheck.rows.length === 0) {
+          return sendError(res, 400, 'Bedrijf bestaat niet');
+        }
+      }
       const zzpResult = await query(
         `INSERT INTO zzp_users (user_id, company_id, full_name, email)
          VALUES ($1, $2, $3, $4)
          RETURNING id`,
-        [user.id, companyResult.rows[0].id, fullName || null, email.toLowerCase()]
+        [user.id, companyId, fullName || null, email.toLowerCase()]
       );
       profileId = zzpResult.rows[0].id;
-    } else {
-      // Create company profile
+    } else if (role === 'company_admin') {
       const companyResult = await query(
         `INSERT INTO companies (user_id, name, email)
          VALUES ($1, $2, $3)
@@ -76,6 +89,20 @@ router.post('/register', async (req, res) => {
         [user.id, fullName || 'Nieuw Bedrijf', email.toLowerCase()]
       );
       profileId = companyResult.rows[0].id;
+      companyId = companyResult.rows[0].id;
+    } else if (role === 'company_staff') {
+      if (!companyId) {
+        return sendError(res, 400, 'Bedrijf-ID is verplicht voor medewerkers');
+      }
+      const companyCheck = await query('SELECT id FROM companies WHERE id = $1', [companyId]);
+      if (companyCheck.rows.length === 0) {
+        return sendError(res, 400, 'Bedrijf bestaat niet');
+      }
+      profileId = companyId;
+    }
+
+    if (companyId) {
+      await query('UPDATE users SET company_id = $1 WHERE id = $2', [companyId, user.id]);
     }
 
     // Generate JWT token
@@ -83,8 +110,9 @@ router.post('/register', async (req, res) => {
       { 
         userId: user.id, 
         email: user.email, 
-        userType: user.user_type,
-        profileId: profileId
+        role: role,
+        profileId: profileId,
+        companyId
       },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
@@ -96,7 +124,8 @@ router.post('/register', async (req, res) => {
         id: user.id,
         email: user.email,
         fullName: user.full_name,
-        userType: user.user_type,
+        role: role,
+        companyId,
         profileId: profileId
       }
     });
@@ -121,7 +150,7 @@ router.post('/login', async (req, res) => {
 
     // Find user by email
     const userResult = await query(
-      'SELECT id, email, password_hash, full_name, user_type FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, full_name, user_type, role, company_id FROM users WHERE email = $1',
       [email.toLowerCase()]
     );
 
@@ -130,6 +159,8 @@ router.post('/login', async (req, res) => {
     }
 
     const user = userResult.rows[0];
+    const role = user.role || ROLE_MAP[user.user_type] || 'zzp_user';
+    let companyId = user.company_id || null;
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
@@ -139,13 +170,14 @@ router.post('/login', async (req, res) => {
 
     // Get profile ID based on user type
     let profileId = null;
-    if (user.user_type === 'zzp') {
+    if (role === 'zzp_user') {
       const zzpResult = await query(
-        'SELECT id FROM zzp_users WHERE user_id = $1 LIMIT 1',
+        'SELECT id, company_id FROM zzp_users WHERE user_id = $1 LIMIT 1',
         [user.id]
       );
       if (zzpResult.rows.length > 0) {
         profileId = zzpResult.rows[0].id;
+        companyId = companyId || zzpResult.rows[0].company_id;
       }
     } else {
       const companyResult = await query(
@@ -154,6 +186,7 @@ router.post('/login', async (req, res) => {
       );
       if (companyResult.rows.length > 0) {
         profileId = companyResult.rows[0].id;
+        companyId = companyId || companyResult.rows[0].id;
       }
     }
 
@@ -162,7 +195,8 @@ router.post('/login', async (req, res) => {
       { 
         userId: user.id, 
         email: user.email, 
-        userType: user.user_type,
+        role,
+        companyId,
         profileId: profileId
       },
       JWT_SECRET,
@@ -175,7 +209,8 @@ router.post('/login', async (req, res) => {
         id: user.id,
         email: user.email,
         fullName: user.full_name,
-        userType: user.user_type,
+        role,
+        companyId,
         profileId: profileId
       }
     });
@@ -203,7 +238,7 @@ router.get('/me', async (req, res) => {
       
       // Get user details
       const userResult = await query(
-        'SELECT id, email, full_name, user_type FROM users WHERE id = $1',
+        'SELECT id, email, full_name, user_type, role, company_id FROM users WHERE id = $1',
         [decoded.userId]
       );
 
@@ -217,7 +252,8 @@ router.get('/me', async (req, res) => {
         id: user.id,
         email: user.email,
         fullName: user.full_name,
-        userType: user.user_type,
+        role: user.role || decoded.role,
+        companyId: user.company_id || decoded.companyId,
         profileId: decoded.profileId
       });
     } catch (jwtError) {

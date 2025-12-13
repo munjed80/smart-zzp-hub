@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart ZZP Hub</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-title">Smart ZZP Hub</span>
+      <span class="brand-subtitle">Productieve hub voor bedrijven en ZZP'ers</span>
+    </div>
+    <div class="user-actions">
+      <span id="user-info" class="muted"></span>
+      <button id="logout-btn" class="btn btn-secondary" type="button">Uitloggen</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="login-section" class="card">
+      <h1>Inloggen</h1>
+      <p class="muted">Log in om werkbonnen, overzichten en facturen te beheren.</p>
+      <form id="login-form" class="form-grid">
+        <label>E-mail
+          <input type="email" id="login-email" required placeholder="jij@example.com">
+        </label>
+        <label>Wachtwoord
+          <input type="password" id="login-password" required placeholder="••••••••">
+        </label>
+        <button type="submit" class="btn btn-primary full-width">Inloggen</button>
+      </form>
+      <div class="muted small">
+        Tip: gebruik de seed gebruikers <strong>company@example.com</strong> of <strong>test@example.com</strong> met wachtwoord <strong>test123</strong>.
+      </div>
+      <div id="login-error" class="error hidden"></div>
+    </section>
+
+    <section id="app-section" class="hidden">
+      <nav class="tabs">
+        <button data-tab="dashboard" class="tab active">Dashboard</button>
+        <button data-tab="worklogs" class="tab">Werkbonnen</button>
+        <button data-tab="statements" class="tab">Overzichten</button>
+        <button data-tab="invoices" class="tab">Facturen</button>
+        <button data-tab="expenses" class="tab">Uitgaven</button>
+        <button data-tab="outbox" class="tab">Outbox</button>
+        <button data-tab="settings" class="tab">Instellingen</button>
+      </nav>
+
+      <section id="dashboard" class="tab-content">
+        <div class="grid-3">
+          <div class="card stat-card">
+            <div class="label">Openstaande overzichten</div>
+            <div id="stat-open" class="value">-</div>
+          </div>
+          <div class="card stat-card">
+            <div class="label">Totaal omzet (week)</div>
+            <div id="stat-total" class="value">-</div>
+          </div>
+          <div class="card stat-card">
+            <div class="label">Laatste factuur</div>
+            <div id="stat-last-invoice" class="value">-</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h2>Recente overzichten</h2>
+            <button id="refresh-dashboard" class="btn btn-secondary btn-sm" type="button">Vernieuwen</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Week</th>
+                  <th>ZZP'er</th>
+                  <th>Bedrag</th>
+                  <th>Status</th>
+                  <th>Acties</th>
+                </tr>
+              </thead>
+              <tbody id="dashboard-statements"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="worklogs" class="tab-content hidden">
+        <div class="card">
+          <div class="card-header">
+            <h2>Nieuwe werkbon</h2>
+          </div>
+          <form id="worklog-form" class="form-grid">
+            <label>ZZP-ID
+              <input type="text" id="worklog-zzp" placeholder="ZZP profiel ID" required>
+            </label>
+            <label>Datum
+              <input type="date" id="worklog-date" required>
+            </label>
+            <label>Tarief type
+              <select id="worklog-tariff" required>
+                <option value="hour">Uur</option>
+                <option value="stop">Stop</option>
+                <option value="location">Locatie</option>
+                <option value="project">Project</option>
+                <option value="point">Punt</option>
+              </select>
+            </label>
+            <label>Hoeveelheid
+              <input type="number" step="0.01" id="worklog-qty" required>
+            </label>
+            <label>Prijs per eenheid (€)
+              <input type="number" step="0.01" id="worklog-price" required>
+            </label>
+            <label>Notities
+              <input type="text" id="worklog-notes" placeholder="Optioneel">
+            </label>
+            <button type="submit" class="btn btn-primary full-width">Werkbon opslaan</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Werkbonnen</h2>
+            <button id="refresh-worklogs" class="btn btn-secondary btn-sm" type="button">Vernieuwen</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Datum</th>
+                  <th>Type</th>
+                  <th>Qty</th>
+                  <th>Tarief</th>
+                  <th>Totaal</th>
+                </tr>
+              </thead>
+              <tbody id="worklog-list"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="statements" class="tab-content hidden">
+        <div class="card">
+          <div class="card-header">
+            <h2>Weekoverzichten</h2>
+            <div class="card-actions">
+              <button id="generate-statement" class="btn btn-primary btn-sm" type="button">Weekoverzicht genereren</button>
+              <button id="refresh-statements" class="btn btn-secondary btn-sm" type="button">Vernieuwen</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Week</th>
+                  <th>ZZP'er</th>
+                  <th>Bedrag</th>
+                  <th>Status</th>
+                  <th>Export</th>
+                  <th>Factuur</th>
+                </tr>
+              </thead>
+              <tbody id="statement-list"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="invoices" class="tab-content hidden">
+        <div class="card">
+          <div class="card-header">
+            <h2>Facturen bij overzichten</h2>
+          </div>
+          <p class="muted small">Genereer een factuur vanuit een weekoverzicht. Kies het overzicht in de tabel bij &quot;Overzichten&quot; om een factuur te maken.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Overzicht</th>
+                  <th>Factuurnummer</th>
+                  <th>Datum</th>
+                  <th>Download</th>
+                </tr>
+              </thead>
+              <tbody id="invoice-list"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="expenses" class="tab-content hidden">
+        <div class="card">
+          <div class="card-header">
+            <h2>Uitgaven</h2>
+          </div>
+          <form id="expense-form" class="form-grid">
+            <label>Categorie
+              <input type="text" id="expense-category" placeholder="Brandstof, materiaal..." required>
+            </label>
+            <label>Datum
+              <input type="date" id="expense-date" required>
+            </label>
+            <label>Bedrag (€)
+              <input type="number" step="0.01" id="expense-amount" required>
+            </label>
+            <label>Notities
+              <input type="text" id="expense-notes" placeholder="Optioneel">
+            </label>
+            <button type="submit" class="btn btn-primary full-width">Uitgave opslaan</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Overzicht uitgaven</h2>
+            <button id="refresh-expenses" class="btn btn-secondary btn-sm" type="button">Vernieuwen</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Datum</th>
+                  <th>Categorie</th>
+                  <th>Bedrag</th>
+                  <th>Notities</th>
+                </tr>
+              </thead>
+              <tbody id="expense-list"></tbody>
+            </table>
+          </div>
+          <p class="muted small">Totaal uitgaven: <span id="expense-total">€0,00</span></p>
+        </div>
+      </section>
+
+      <section id="outbox" class="tab-content hidden">
+        <div class="card">
+          <div class="card-header">
+            <h2>Outbox (simulatie e-mail)</h2>
+          </div>
+          <p class="muted small">E-mails worden in staging gelogd naar <code>storage/mail-outbox</code>.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Verzonden</th>
+                  <th>Naar</th>
+                  <th>Onderwerp</th>
+                  <th>Statement</th>
+                  <th>Factuur</th>
+                </tr>
+              </thead>
+              <tbody id="outbox-list"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="settings" class="tab-content hidden">
+        <div class="card">
+          <div class="card-header">
+            <h2>Sessie</h2>
+          </div>
+          <p class="muted small">Rol: <span id="settings-role">-</span></p>
+          <p class="muted small">Bedrijf-ID: <span id="settings-company">-</span></p>
+          <p class="muted small">Profiel-ID: <span id="settings-profile">-</span></p>
+          <button id="logout-btn-secondary" class="btn btn-secondary" type="button">Uitloggen</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

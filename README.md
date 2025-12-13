@@ -1,84 +1,69 @@
 # Smart ZZP Hub
 
-Smart ZZP Hub is a dual-portal platform for Dutch ZZP freelancers and the mid-sized companies that work with them.
+Smart ZZP Hub is a dual-portal SaaS voor Nederlandse ZZP’ers en bedrijven. Bedrijven registreren werk, genereren weekoverzichten en facturen; ZZP’ers zien hun overzichten, maken facturen en houden uitgaven bij. De UI is volledig in het Nederlands, terwijl code en identifiers in het Engels blijven.
 
-The goal of this project is to automate the weekly workflow:
+## Wat zit erin
+- Responsieve dashboard UI (served op `/`) met rollen: `company_admin`, `company_staff`, `zzp_user`
+- JWT-authenticatie en strikte tenant isolatie op `company_id`
+- Werkbonnen, weekoverzichten, export (PDF/CSV) en factuurgeneratie
+- Uitgavenregistratie (ZZP) + BTW-overzichten
+- Postgres schema + seeds, automatische init via Docker Compose
+- Nginx reverse proxy en rate limiting, veilige headers
 
-- Companies register delivered work (stops, hours, locations, points, projects).
-- The system generates weekly statements per ZZP.
-- ZZP users log in, review their statement, and create an official invoice in one click.
-
-The **default UI language will be Dutch**, but all code, identifiers, and comments are in English to keep the codebase clean.
-
-## Project structure
-
-- `backend/` – Node.js + Express REST API
-- `db/` – Database schema drafts (PostgreSQL‑oriented)
-- `docs/` – Functional and flow documentation (EN)
-
-## MVP scope
-
-**Company portal**
-
-- Manage ZZP profiles (basic contact and contract data).
-- Log work entries per ZZP:
-  - tariff type: stop / hour / location / point / project
-  - quantity
-  - agreed unit price
-  - work date
-- Generate weekly statements per ZZP.
-- Export statements as PDF or CSV and send them to ZZP by email.
-
-**ZZP portal**
-
-- View weekly statements.
-- Generate an invoice from a statement (PDF).
-- Basic expense tracking (fuel, maintenance, materials).
-- Overview of paid / unpaid invoices.
-
-## Technical stack (initial)
-
-- Backend: Node.js + Express
-- Database: PostgreSQL (or a compatible cloud service)
-- Auth: to be decided (JWT / session‑based)
-- Frontend: will be added later (likely Next.js or a lightweight SPA)
-- Language:
-  - UI texts: Dutch (via translation files)
-  - Code: English
-
-## Status
-
-✅ **Production Ready!** This repository contains a complete, fully-functional application ready for VPS deployment.
-
-### Quick Links
-- 🚀 **[Quick Deployment Guide](DEPLOYMENT_QUICKSTART.md)** - Deploy in 3 minutes
-- 📚 **[Complete VPS Guide](docs/VPS_DEPLOYMENT_GUIDE.md)** - Detailed instructions
-- 🔍 **[API Documentation](docs/ROUTES.md)** - All endpoints
-- 🖼️ **[UI Previews](docs/PREVIEW.md)** - Screenshots of all pages
-- 📋 **[Deployment Status](docs/DEPLOYMENT.md)** - Readiness checklist
-
-### What's Included
-- ✅ Backend API (10 routes, fully tested)
-- ✅ Frontend UI (9 pages, Dutch language)
-- ✅ Database schema and migrations
-- ✅ Docker Compose configuration
-- ✅ PM2 and systemd configurations
-- ✅ Nginx reverse proxy setup
-- ✅ SSL/TLS support
-- ✅ Security best practices
-- ✅ Automated deployment scripts
-
-## Deployment
-
-Choose your preferred deployment method:
-
-### 1. Docker Compose (Fastest)
+## Snel starten (Docker Compose)
 ```bash
 git clone https://github.com/munjed80/smart-zzp-hub.git
 cd smart-zzp-hub
-# Create .env with DB_USER, DB_PASSWORD, JWT_SECRET
+cp .env.example .env             # vul DB_PASSWORD en JWT_SECRET in
 docker-compose up -d
 ```
+Ga naar `http://localhost` voor de UI. Inloggen kan direct met de seed-accounts:
+- bedrijf: `company@example.com` / `test123` (rol: company_admin)
+- zzp: `test@example.com` / `test123` (rol: zzp_user)
+
+## Handmatige installatie (zonder Docker)
+```bash
+cd backend
+npm ci
+DATABASE_URL=postgresql://... npm run dev
+```
+Zorg dat de Postgres database is gevuld met `db/schema.sql` en `db/seed.sql`.
+
+## Architectuur
+- **Backend:** Node.js + Express, JWT, rate limiting, security headers
+- **Frontend:** Lichtgewicht SPA (vanilla JS) served via Express/Nginx
+- **Database:** PostgreSQL met UUID’s, tenant scoping via `company_id`
+- **Exports:** Statements naar PDF/CSV; facturen als PDF (base64 via API)
+- **E-mail (staging):** Outbox logging in `storage/mail-outbox` i.p.v. directe SMTP
+
+## Belangrijke mappen
+- `backend/src` – API routes, middleware, PDF/CSV exports
+- `frontend/public` – Productieklare statische UI (geladen op `/`)
+- `db/` – Schema, migraties, seeds
+- `docker-compose.yml` – Backend, Postgres, Nginx reverse proxy
+
+## Eerste klant onboarden
+1) Deploy (Docker Compose of VPS).  
+2) Maak een admin-account of gebruik de seed `company@example.com`.  
+3) Voeg ZZP-profielen toe en registreer werkbonnen.  
+4) Genereer een weekoverzicht en exporteer PDF/CSV.  
+5) Klik “Factuur” bij het overzicht om de juridische factuur te genereren.  
+6) ZZP’er logt in, ziet overzichten/facturen en registreert uitgaven.
+
+## Omgevingsvariabelen
+Zie `.env.example` voor alle variabelen. Kernwaarden:
+- `DATABASE_URL` (postgres://user:pass@host:5432/db)
+- `JWT_SECRET` (sterke secret)
+- `PORT` (default 4000)
+
+## Beveiliging
+- Geen externe DB-poort in Docker Compose
+- Rate limiting op alle endpoints
+- Security headers via Express + Nginx
+- JWT expiratie standaard 7 dagen
+
+## Licentie
+MIT
 
 ### 2. PM2 (Production Recommended)
 ```bash

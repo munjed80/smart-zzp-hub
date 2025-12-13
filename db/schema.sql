@@ -11,7 +11,8 @@ CREATE TABLE users (
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     full_name TEXT,
-    user_type TEXT NOT NULL CHECK (user_type IN ('zzp', 'company')),
+    user_type TEXT NOT NULL CHECK (user_type IN ('zzp', 'company', 'zzp_user', 'company_admin', 'company_staff')),
+    role TEXT NOT NULL DEFAULT 'zzp_user' CHECK (role IN ('company_admin', 'company_staff', 'zzp_user')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -24,10 +25,15 @@ CREATE TABLE companies (
     name TEXT NOT NULL,
     kvk_number TEXT,
     btw_number TEXT,
+    vat_rate NUMERIC(4,3) DEFAULT 0.21,
     email TEXT,
     phone TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Link user to a company for multi-tenant scoping
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES companies(id);
 
 -- ZZP Users table
 -- Stores information about ZZP freelancers linked to companies
@@ -71,6 +77,15 @@ CREATE TABLE statements (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Invoices table
+CREATE TABLE invoices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    statement_id UUID UNIQUE NOT NULL REFERENCES statements(id) ON DELETE CASCADE,
+    invoice_number TEXT UNIQUE NOT NULL,
+    file_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Expenses table
 -- Stores expenses logged by ZZP users for BTW calculation
 CREATE TABLE expenses (
@@ -93,5 +108,7 @@ CREATE INDEX idx_worklogs_work_date ON worklogs(work_date);
 CREATE INDEX idx_statements_company_id ON statements(company_id);
 CREATE INDEX idx_statements_zzp_id ON statements(zzp_id);
 CREATE INDEX idx_statements_year_week ON statements(year, week_number);
+CREATE INDEX idx_invoices_statement_id ON invoices(statement_id);
+CREATE INDEX idx_invoices_invoice_number ON invoices(invoice_number);
 CREATE INDEX idx_expenses_zzp_id ON expenses(zzp_id);
 CREATE INDEX idx_expenses_expense_date ON expenses(expense_date);
