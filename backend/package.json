@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "node src/index.js",
-    "start": "NODE_ENV=production node src/index.js"
+    "start": "NODE_ENV=production node src/index.js",
+    "test": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --runInBand"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -16,5 +17,13 @@
     "morgan": "^1.10.0",
     "pdfkit": "^0.15.2",
     "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {}
   }
 }
